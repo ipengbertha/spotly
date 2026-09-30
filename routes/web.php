@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\User\PostController;
 use App\Http\Controllers\PublicController;
 use Illuminate\Support\Facades\Route;
@@ -26,7 +28,8 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 
 // Area Admin
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', fn () => Inertia::render('Admin/Dashboard'))->name('dashboard');
+    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index');
 });
 
 // Area User

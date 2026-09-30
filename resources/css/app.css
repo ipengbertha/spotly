@@ -10,11 +10,11 @@
     --font-display: 'BBH Hegarty', ui-sans-serif, system-ui, sans-serif;
 
     /* Warna brand */
-    --color-brand: #F43F5E;
-    --color-peach: #FFB4A2;
-    --color-grape: #7C5CFC;
-    --color-cream: #FFF7F3;
-    --color-ink: #312E5A;
+    --color-cream: #FFF1E8;
+    --color-peach: #FFA98F;
+    --color-brand: #F0245A;
+    --color-grape: #6D3FF0;
+    --color-ink:   #2A2557;
 }
 
 @layer base {
@@ -31,4 +31,12 @@
         font-weight: 400;
         font-synthesis-weight: none;
     }
+
+    html { scroll-behavior: smooth; }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0) rotate(6deg); }
+        50%      { transform: translateY(-16px) rotate(2deg); }
+    }
+    .animate-float { animation: float 5s ease-in-out infinite; }
 }
