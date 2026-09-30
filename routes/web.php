@@ -3,11 +3,12 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\User\PostController;
+use App\Http\Controllers\PublicController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 // Halaman publik
-Route::get('/', fn () => Inertia::render('Home'))->name('home');
+Route::get('/', [PublicController::class, 'home'])->name('home');
 
 // Hanya untuk tamu (yang belum login)
 Route::middleware('guest')->group(function () {

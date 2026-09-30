@@ -1,4 +1,7 @@
 import '../css/app.css';
+import '@fontsource-variable/google-sans';
+import '@fontsource/acme';
+import '@fontsource/bbh-hegarty';
 import { createRoot } from 'react-dom/client';
 import { createInertiaApp } from '@inertiajs/react';
 

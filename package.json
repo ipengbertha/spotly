@@ -16,6 +16,9 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
+        "@fontsource-variable/google-sans": "^5.3.1",
+        "@fontsource/acme": "^5.3.0",
+        "@fontsource/bbh-hegarty": "^5.3.0",
         "@inertiajs/react": "^3.7.1",
         "react": "^19.3.0",
         "react-dom": "^19.3.0"
