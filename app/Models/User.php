@@ -18,7 +18,7 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    protected $fillable = ['name', 'email', 'password', 'role'];
+    protected $fillable = ['name', 'email', 'password', 'role', 'username', 'phone',];
 
     public function isAdmin(): bool
     {

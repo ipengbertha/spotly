@@ -22,7 +22,17 @@ class RegisteredUserController extends Controller
         $data = $request->validate([
             'name'     => ['required', 'string', 'max:100'],
             'email'    => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'confirmed', Password::min(8)],
+            'phone'    => ['required', 'regex:/^(\+62|62|0)8[0-9]{8,12}$/', 'unique:users,phone'],
+            'username' => ['required', 'string', 'min:4', 'max:30', 'regex:/^[a-z0-9_.]+$/', 'unique:users,username'],
+            'password' => ['required', 'confirmed', Password::min(8)->numbers()->symbols(), 'regex:/[A-Z]/'],
+        ], [
+            'email.unique'    => 'E-mail ini sudah terdaftar.',
+            'phone.unique'    => 'Nomor telepon ini sudah terdaftar.',
+            'phone.regex'     => 'Nomor telepon tidak valid. Contoh: 081234567890.',
+            'username.unique' => 'Username ini sudah dipakai, coba yang lain.',
+            'username.regex'  => 'Username hanya boleh huruf kecil, angka, titik, dan garis bawah.',
+            'username.min'    => 'Username minimal 4 karakter.',
+            'password.regex'  => 'Password harus mengandung minimal satu huruf besar.',
         ]);
 
         // Role SELALU 'user'. Nilai role dari request diabaikan,
@@ -31,6 +41,8 @@ class RegisteredUserController extends Controller
         $user = User::create([
             'name'     => $data['name'],
             'email'    => $data['email'],
+            'phone'    => $data['phone'],
+            'username' => $data['username'],
             'password' => $data['password'],
             'role'     => 'user',
         ]);
