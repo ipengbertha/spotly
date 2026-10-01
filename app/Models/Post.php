@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 class Post extends Model
 {
@@ -84,5 +85,34 @@ class Post extends Model
             'status' => self::SUBMITTED,
             'rejection_reason' => null, // alasan lama dihapus saat dikirim ulang
         ])->save();
+    }
+
+        // Dipanggil admin saat approve. published_at otomatis sekarang.
+    public function markPublished(Carbon $expiredAt): void
+    {
+        $this->forceFill([
+            'status'           => self::PUBLISHED,
+            'published_at'     => now(),
+            'expired_at'       => $expiredAt,
+            'rejection_reason' => null,
+        ])->save();
+    }
+
+    // Dipanggil admin saat reject. Alasan wajib supaya penulis tahu apa yang harus diperbaiki.
+    public function markRejected(string $reason): void
+    {
+        $this->forceFill([
+            'status'           => self::REJECTED,
+            'rejection_reason' => $reason,
+        ])->save();
+    }
+
+    public function displayStatus(): string
+    {
+        if ($this->status === self::PUBLISHED && $this->expired_at && $this->expired_at->isPast()) {
+            return self::ARCHIVED;
+        }
+
+        return $this->status;
     }
 }

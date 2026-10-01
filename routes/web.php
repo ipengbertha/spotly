@@ -4,10 +4,11 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ReviewController;
+use App\Http\Controllers\User\DashboardController as UserDashboardController;
+use App\Http\Controllers\User\FeedController;
 use App\Http\Controllers\User\PostController;
 use App\Http\Controllers\PublicController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 // Halaman publik
 Route::get('/', [PublicController::class, 'home'])->name('home');
@@ -30,11 +31,15 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index');
+    Route::post('/reviews/{post}/approve', [ReviewController::class, 'approve'])->name('reviews.approve');
+    Route::post('/reviews/{post}/reject', [ReviewController::class, 'reject'])->name('reviews.reject');
 });
 
 // Area User
 Route::middleware(['auth', 'role:user'])->prefix('user')->name('user.')->group(function () {
-    Route::get('/dashboard', [PostController::class, 'index'])->name('dashboard');
-    Route::resource('posts', PostController::class)->except(['index', 'show']);
+    Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/beranda', [FeedController::class, 'index'])->name('beranda');
+
+    Route::resource('posts', PostController::class)->except(['show']);
     Route::post('posts/{post}/submit', [PostController::class, 'submit'])->name('posts.submit');
 });

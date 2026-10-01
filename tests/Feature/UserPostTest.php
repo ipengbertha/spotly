@@ -43,7 +43,7 @@ class UserPostTest extends TestCase
             'status' => 'published', // percobaan curang
             'is_pinned' => true,
             'image' => UploadedFile::fake()->image('poster.jpg'),
-        ])->assertRedirect('/user/dashboard');
+        ])->assertRedirect('/user/posts');
 
         $post = Post::first();
         $this->assertSame('draft', $post->status);

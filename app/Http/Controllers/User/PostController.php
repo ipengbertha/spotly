@@ -15,6 +15,7 @@ use Inertia\Inertia;
 class PostController extends Controller
 {
     // Daftar postingan milik user yang sedang login (dipakai sebagai dashboard)
+        // Daftar postingan milik user (halaman Kiriman Saya)
     public function index()
     {
         $posts = Auth::user()->posts()->with('category')->latest()->get()
@@ -22,6 +23,7 @@ class PostController extends Controller
                 'id'               => $p->id,
                 'title'            => $p->title,
                 'status'           => $p->status,
+                'display_status'   => $p->displayStatus(),
                 'rejection_reason' => $p->rejection_reason,
                 'category'         => $p->category->name,
                 'image_url'        => $p->image ? '/storage/' . $p->image : null,
@@ -32,7 +34,7 @@ class PostController extends Controller
                 ],
             ]);
 
-        return Inertia::render('User/Dashboard', ['posts' => $posts]);
+        return Inertia::render('User/Posts/Index', ['posts' => $posts]);
     }
 
     public function create()
@@ -60,7 +62,7 @@ class PostController extends Controller
             $post->markSubmitted();
         }
 
-        return redirect()->route('user.dashboard');
+        return redirect()->route('user.posts.index');
     }
 
     public function edit(Post $post)
@@ -104,7 +106,7 @@ class PostController extends Controller
             $post->markSubmitted();
         }
 
-        return redirect()->route('user.dashboard');
+        return redirect()->route('user.posts.index');
     }
 
     public function submit(Post $post)
@@ -112,7 +114,7 @@ class PostController extends Controller
         Gate::authorize('submit', $post);
         $post->markSubmitted();
 
-        return redirect()->route('user.dashboard');
+        return redirect()->route('user.posts.index');
     }
 
     public function destroy(Post $post)
@@ -124,6 +126,6 @@ class PostController extends Controller
         }
         $post->delete();
 
-        return redirect()->route('user.dashboard');
+        return redirect()->route('user.posts.index');
     }
 }
