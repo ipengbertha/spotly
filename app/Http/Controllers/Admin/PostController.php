@@ -7,6 +7,7 @@ use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class PostController extends Controller
@@ -82,6 +83,34 @@ class PostController extends Controller
     public function unpin(Post $post)
     {
         $post->setPinned(false);
+
+        return back();
+    }
+
+    // Pindahkan postingan tayang ke arsip (pin ikut dilepas)
+    public function archive(Post $post)
+    {
+        if (! $post->isActive()) {
+            return back()->withErrors(['post' => 'Hanya postingan yang sedang tayang yang bisa diarsipkan.']);
+        }
+
+        $post->markArchived();
+
+        return back();
+    }
+
+    // Hapus permanen. Hanya postingan tayang atau arsip; milik penulis yang masih
+    // draft, ditolak, atau menunggu review tidak boleh dihapus dari sini.
+    public function destroy(Post $post)
+    {
+        if (! $post->isActive() && ! $post->isArchived()) {
+            return back()->withErrors(['post' => 'Hanya postingan yang tayang atau di arsip yang bisa dihapus dari sini.']);
+        }
+
+        if ($post->image) {
+            Storage::disk('public')->delete($post->image);
+        }
+        $post->delete();
 
         return back();
     }

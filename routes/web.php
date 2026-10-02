@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ArchiveController as AdminArchiveController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PostController as AdminPostController;
@@ -47,6 +48,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::patch('/posts/{post}/expiry', [AdminPostController::class, 'updateExpiry'])->name('posts.expiry');
     Route::post('/posts/{post}/pin', [AdminPostController::class, 'pin'])->name('posts.pin');
     Route::delete('/posts/{post}/pin', [AdminPostController::class, 'unpin'])->name('posts.unpin');
+    Route::post('/posts/{post}/archive', [AdminPostController::class, 'archive'])->name('posts.archive');
+    Route::delete('/posts/{post}', [AdminPostController::class, 'destroy'])->name('posts.destroy');
+
+    Route::get('/archive', [AdminArchiveController::class, 'index'])->name('archive.index');
+    Route::post('/archive/{post}/republish', [AdminArchiveController::class, 'republish'])->name('archive.republish');
 
     Route::get('/categories', [AdminCategoryController::class, 'index'])->name('categories.index');
     Route::post('/categories', [AdminCategoryController::class, 'store'])->name('categories.store');

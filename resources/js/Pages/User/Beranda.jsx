@@ -1,7 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import UserLayout from '../../Layouts/UserLayout';
-import PostCard from '../../Components/PostCard';
 import AdminLayout from '../../Layouts/AdminLayout';
+import PostCard from '../../Components/PostCard';
 
 function Chip({ href, active, children }) {
     return (
@@ -15,9 +15,9 @@ function Chip({ href, active, children }) {
     );
 }
 
-export default function Beranda({ posts, filters, isAdmin }) {
+export default function Beranda({ posts, filters, isAdmin, categories = [] }) {
+    const { auth } = usePage().props;
     const Layout = isAdmin ? AdminLayout : UserLayout;
-    const { auth, categories = [] } = usePage().props;
     const catName = categories.find((c) => String(c.id) === String(filters.category))?.name;
 
     let title = 'Informasi Terbaru';
@@ -37,7 +37,7 @@ export default function Beranda({ posts, filters, isAdmin }) {
     const noCategory = !filters.category && !filters.spotlight;
 
     return (
-        <Layout tittle="Mading">
+        <Layout title="Mading">
             <Head title="Beranda" />
 
             {!isFiltering && (

@@ -4,8 +4,11 @@ import AdminLayout from '../../../Layouts/AdminLayout';
 
 const pad = (n) => String(n).padStart(2, '0');
 const toInputDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-
-// Teks tombol halaman bawaan Laravel masih berbahasa Inggris
+const defaultExpiry = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return toInputDate(d);
+};
 const pageLabel = (label) =>
     label.replace('&laquo; Previous', '&laquo; Sebelumnya').replace('Next &raquo;', 'Berikutnya &raquo;');
 
@@ -21,32 +24,24 @@ function Modal({ title, onClose, children }) {
     );
 }
 
-export default function Index({ posts, pinnedCount, maxPinned }) {
+export default function Index({ posts, filters }) {
     const { errors } = usePage().props;
-    const [editing, setEditing] = useState(null);
-    const form = useForm({ expired_at: '' });
+    const [target, setTarget] = useState(null);
+    const form = useForm({ expired_at: defaultExpiry() });
 
-    const openEdit = (p) => {
+    const openRepublish = (p) => {
         form.clearErrors();
-        form.setData('expired_at', p.expired_input);
-        setEditing(p);
+        form.setData('expired_at', defaultExpiry());
+        setTarget(p);
     };
-    const closeEdit = () => setEditing(null);
+    const close = () => setTarget(null);
 
-    const submitExpiry = (e) => {
+    const submit = (e) => {
         e.preventDefault();
-        form.patch(`/admin/posts/${editing.id}/expiry`, {
+        form.post(`/admin/archive/${target.id}/republish`, {
             preserveScroll: true,
-            onSuccess: closeEdit,
+            onSuccess: close,
         });
-    };
-
-    const pin = (p) => router.post(`/admin/posts/${p.id}/pin`, {}, { preserveScroll: true });
-    const unpin = (p) => router.delete(`/admin/posts/${p.id}/pin`, { preserveScroll: true });
-
-    const archive = (p) => {
-        if (!confirm(`Arsipkan "${p.title}"? Postingan akan hilang dari mading dan pin-nya dilepas.`)) return;
-        router.post(`/admin/posts/${p.id}/archive`, {}, { preserveScroll: true });
     };
 
     const remove = (p) => {
@@ -54,27 +49,20 @@ export default function Index({ posts, pinnedCount, maxPinned }) {
         router.delete(`/admin/posts/${p.id}`, { preserveScroll: true });
     };
 
-    const full = pinnedCount >= maxPinned;
-
     return (
-        <AdminLayout title="Postingan">
-            <Head title="Postingan Tayang" />
+        <AdminLayout title="Arsip">
+            <Head title="Arsip" />
 
-            {/* Keterangan berbentuk highlight + penghitung pin */}
-            <div className="mb-5 flex flex-wrap items-stretch gap-3">
-                <div className="flex min-w-0 flex-1 items-start gap-3 rounded-2xl bg-grape/10 px-4 py-3 text-sm text-ink ring-1 ring-grape/20">
-                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-grape text-xs font-bold text-white">
-                        i
-                    </span>
-                    <p>
-                        Postingan yang <b className="text-grape">sedang tayang</b> di mading. Atur{' '}
-                        <b className="text-grape">masa tayang</b>, <b className="text-grape">pin</b> untuk
-                        Spotlight, atau <b className="text-grape">arsipkan</b>.
-                    </p>
-                </div>
-                <span className="flex items-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-grape shadow-sm ring-1 ring-ink/5">
-                    Pin terpakai: {pinnedCount} / {maxPinned}
+            {/* Keterangan berbentuk highlight */}
+            <div className="mb-5 flex items-start gap-3 rounded-2xl bg-grape/10 px-4 py-3 text-sm text-ink ring-1 ring-grape/20">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-grape text-xs font-bold text-white">
+                    i
                 </span>
+                <p>
+                    Postingan yang <b className="text-grape">diarsipkan admin</b> atau{' '}
+                    <b className="text-grape">masa tayangnya sudah habis</b>. Kamu bisa{' '}
+                    <b className="text-grape">menayangkannya lagi</b> atau <b className="text-grape">menghapusnya</b>.
+                </p>
             </div>
 
             {errors.post && (
@@ -90,8 +78,8 @@ export default function Index({ posts, pinnedCount, maxPinned }) {
                             <th className="px-5 py-4 font-medium">Judul</th>
                             <th className="px-5 py-4 font-medium">Penulis</th>
                             <th className="px-5 py-4 font-medium">Kategori</th>
-                            <th className="whitespace-nowrap px-5 py-4 font-medium">Tayang sejak</th>
-                            <th className="px-5 py-4 font-medium">Berakhir</th>
+                            <th className="px-5 py-4 font-medium">Tayang</th>
+                            <th className="px-5 py-4 font-medium">Alasan</th>
                             <th className="px-5 py-4 font-medium">Aksi</th>
                         </tr>
                     </thead>
@@ -99,45 +87,26 @@ export default function Index({ posts, pinnedCount, maxPinned }) {
                         {posts.data.length === 0 && (
                             <tr>
                                 <td colSpan={6} className="p-8 text-center text-ink/60">
-                                    Belum ada postingan yang sedang tayang.
+                                    {filters.q ? 'Tidak ada postingan arsip yang cocok.' : 'Arsip kosong.'}
                                 </td>
                             </tr>
                         )}
                         {posts.data.map((p) => (
                             <tr key={p.id}>
-                                <td className="px-5 py-3 font-semibold text-ink">
-                                    {p.title}
-                                    {p.is_pinned && (
-                                        <span className="ml-2 rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white">
-                                            PIN
-                                        </span>
-                                    )}
-                                </td>
+                                <td className="px-5 py-3 font-semibold text-ink">{p.title}</td>
                                 <td className="px-5 py-3 text-ink/70">{p.author}</td>
                                 <td className="px-5 py-3 text-ink/70">{p.category}</td>
-                                <td className="whitespace-nowrap px-5 py-3 text-ink/70">{p.published_label}</td>
-                                <td className="whitespace-nowrap px-5 py-3 text-ink/70">{p.expired_label}</td>
+                                <td className="px-5 py-3 text-ink/70">{p.published_label} - {p.expired_label}</td>
+                                <td className="px-5 py-3">
+                                    <span className="whitespace-nowrap rounded-full bg-ink/5 px-2.5 py-0.5 text-xs font-semibold text-ink/70">
+                                        {p.reason}
+                                    </span>
+                                </td>
                                 <td className="whitespace-nowrap px-5 py-3">
                                     <div className="flex flex-nowrap gap-2">
-                                        <button onClick={() => openEdit(p)}
+                                        <button onClick={() => openRepublish(p)}
                                             className="rounded-full bg-grape/10 px-3 py-1 text-xs font-semibold text-grape hover:bg-grape/20">
-                                            Masa tayang
-                                        </button>
-                                        {p.is_pinned ? (
-                                            <button onClick={() => unpin(p)}
-                                                className="rounded-full border border-ink/20 px-3 py-1 text-xs font-semibold text-ink hover:bg-ink/5">
-                                                Lepas pin
-                                            </button>
-                                        ) : (
-                                            <button onClick={() => pin(p)} disabled={full}
-                                                title={full ? 'Slot pin penuh' : ''}
-                                                className="rounded-full bg-brand px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">
-                                                Pin
-                                            </button>
-                                        )}
-                                        <button onClick={() => archive(p)}
-                                            className="rounded-full border border-ink/20 px-3 py-1 text-xs font-semibold text-ink hover:bg-ink/5">
-                                            Arsipkan
+                                            Tayangkan lagi
                                         </button>
                                         <button onClick={() => remove(p)}
                                             className="rounded-full border border-brand/40 px-3 py-1 text-xs font-semibold text-brand hover:bg-brand/10">
@@ -151,7 +120,7 @@ export default function Index({ posts, pinnedCount, maxPinned }) {
                 </table>
             </div>
 
-            {/* Pagination: selalu tampil */}
+                        {/* Pagination: selalu tampil */}
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-ink/60">
                     Menampilkan {posts.from ?? 0}-{posts.to ?? 0} dari {posts.total} postingan
@@ -172,16 +141,16 @@ export default function Index({ posts, pinnedCount, maxPinned }) {
                 </div>
             </div>
 
-            {editing && (
-                <Modal title="Ubah masa tayang" onClose={closeEdit}>
-                    <form onSubmit={submitExpiry}>
+            {target && (
+                <Modal title="Tayangkan lagi" onClose={close}>
+                    <form onSubmit={submit}>
                         <p className="mb-4 text-sm text-ink/60">
-                            Atur sampai kapan &quot;{editing.title}&quot; tampil di mading.
+                            &quot;{target.title}&quot; akan tayang lagi mulai sekarang. Tentukan sampai kapan.
                         </p>
-                        <label className="mb-1 block text-sm font-semibold text-ink" htmlFor="expired_at">
+                        <label className="mb-1 block text-sm font-semibold text-ink" htmlFor="republish-date">
                             Tayang sampai
                         </label>
-                        <input id="expired_at" type="date" min={toInputDate(new Date())}
+                        <input id="republish-date" type="date" min={toInputDate(new Date())}
                             value={form.data.expired_at}
                             onChange={(e) => form.setData('expired_at', e.target.value)}
                             className="w-full rounded-xl border border-ink/15 px-3 py-2 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20" />
@@ -189,13 +158,13 @@ export default function Index({ posts, pinnedCount, maxPinned }) {
                             <p className="mt-1 text-sm text-brand">{form.errors.expired_at}</p>
                         )}
                         <div className="mt-6 flex justify-end gap-2">
-                            <button type="button" onClick={closeEdit}
+                            <button type="button" onClick={close}
                                 className="rounded-full border border-ink/20 px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5">
                                 Batal
                             </button>
                             <button type="submit" disabled={form.processing}
                                 className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60">
-                                Simpan
+                                Tayangkan
                             </button>
                         </div>
                     </form>

@@ -72,13 +72,21 @@ function NavItem({ icon, label, href, active, soon }) {
 }
 
 export default function AdminLayout({ title, children }) {
+    // TIGA BARIS INI YANG SEBELUMNYA HILANG
     const { url, props } = usePage();
     const user = props.auth?.user;
     const [open, setOpen] = useState(false);
+
     const u = new URL(url, 'http://localhost');
     const onMading = u.pathname === '/user/beranda';
+    const isMading = onMading;
     const onUsers = u.pathname.startsWith('/admin/users');
-    const searchPath = onMading ? '/user/beranda' : onUsers ? '/admin/users' : '/admin/reviews';
+    const onReviews = u.pathname.startsWith('/admin/reviews');
+    const onArchive = u.pathname.startsWith('/admin/archive');
+    const searchPath = onMading ? '/user/beranda'
+        : onUsers ? '/admin/users'
+        : onArchive ? '/admin/archive'
+        : '/admin/reviews';
     const [q, setQ] = useState(u.pathname === searchPath ? (u.searchParams.get('q') ?? '') : '');
 
     const search = (e) => {
@@ -91,6 +99,7 @@ export default function AdminLayout({ title, children }) {
     const isPosts = url.startsWith('/admin/posts');
     const isCategories = url.startsWith('/admin/categories');
     const isUsers = url.startsWith('/admin/users');
+    const isArchive = url.startsWith('/admin/archive');
     const initial = (user?.name ?? '?').trim().charAt(0).toUpperCase();
     const today = new Date().toLocaleDateString('id-ID', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -105,7 +114,7 @@ export default function AdminLayout({ title, children }) {
         ['Konten', [
             { icon: 'doc',     label: 'Postingan', href: '/admin/posts', active: isPosts },
             { icon: 'clock',   label: 'Review',    href: '/admin/reviews', active: isReview },
-            { icon: 'archive', label: 'Arsip',     soon: true },
+            { icon: 'archive', label: 'Arsip',     href: '/admin/archive', active: isArchive },
         ]],
         ['Manajemen', [
             { icon: 'tag',     label: 'Kategori',  href: '/admin/categories', active: isCategories },
@@ -183,21 +192,25 @@ export default function AdminLayout({ title, children }) {
 
                         <h1 className="truncate pl-2 text-xl text-ink">{title}</h1>
 
-                        <form onSubmit={search} className="relative ml-2 hidden w-full max-w-sm sm:block">
-                            <Ico name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
-                            <input value={q} onChange={(e) => setQ(e.target.value)}
-                                placeholder={onMading ? 'Cari informasi...' : onUsers ? 'Cari pengguna...' : 'Cari di antrean review...'}
-                                className="w-full rounded-full border border-ink/10 bg-cream/70 py-2 pl-10 pr-4 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20" />
-                        </form>
+                        {(onMading || onUsers || onReviews || onArchive) && (
+                            <form onSubmit={search} className="relative ml-2 hidden w-full max-w-sm sm:block">
+                                <Ico name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
+                                <input value={q} onChange={(e) => setQ(e.target.value)}
+                                    placeholder={onMading ? 'Cari informasi...' : onUsers ? 'Cari pengguna...' : onArchive ? 'Cari di arsip...' : 'Cari di antrean review...'}
+                                    className="w-full rounded-full border border-ink/10 bg-cream/70 py-2 pl-10 pr-4 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20" />
+                            </form>
+                        )}
 
                         <div className="ml-auto flex items-center gap-3">
                             <span className="hidden rounded-full bg-grape/10 px-4 py-2 text-xs font-semibold text-grape xl:block">
                                 {today}
                             </span>
-                            <Link href="/admin/reviews"
-                                className="hidden items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90 sm:flex">
-                                <Ico name="clock" className="h-4 w-4" /> Antrean Review
-                            </Link>
+                            {!onReviews && (
+                                <Link href="/admin/reviews"
+                                    className="hidden items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90 sm:flex">
+                                    <Ico name="clock" className="h-4 w-4" /> Antrean Review
+                                </Link>
+                            )}
                             <div className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2">
                                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-grape text-sm font-bold text-white">
                                     {initial}

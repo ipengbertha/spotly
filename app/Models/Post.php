@@ -127,6 +127,21 @@ class Post extends Model
         $this->forceFill(['is_pinned' => $pinned])->save();
     }
 
+        // Arsip: diarsipkan admin, atau tayang tapi masa tayangnya sudah lewat (cermin scopeArchive)
+    public function isArchived(): bool
+    {
+        return $this->status === self::ARCHIVED
+            || ($this->status === self::PUBLISHED
+                && $this->expired_at !== null
+                && $this->expired_at->lte(now()));
+    }
+
+    // Diarsipkan admin: pin dilepas supaya slot pin kosong lagi
+    public function markArchived(): void
+    {
+        $this->forceFill(['status' => self::ARCHIVED, 'is_pinned' => false])->save();
+    }
+
     public function displayStatus(): string
     {
         if ($this->status === self::PUBLISHED && $this->expired_at && $this->expired_at->isPast()) {
