@@ -35,6 +35,24 @@ class Post extends Model
 
     public function user()     { return $this->belongsTo(User::class); }
     public function category() { return $this->belongsTo(Category::class); }
+
+        // Kategori tambahan (maksimal 2), urut sesuai waktu dipilih
+    public function extraCategories()
+    {
+        return $this->belongsToMany(Category::class, 'category_post')->orderBy('category_post.id');
+    }
+
+    // Nama semua kategori: utama dulu, lalu tambahan.
+    // Relasi category dan extraCategories harus sudah dimuat (with).
+    public function categoryNames(): array
+    {
+        return collect([$this->category?->name])
+            ->merge($this->extraCategories->pluck('name'))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
     public function comments() { return $this->hasMany(Comment::class); }
     public function likes()    { return $this->hasMany(Like::class); }
 

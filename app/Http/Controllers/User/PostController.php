@@ -14,11 +14,10 @@ use Inertia\Inertia;
 
 class PostController extends Controller
 {
-    // Daftar postingan milik user yang sedang login (dipakai sebagai dashboard)
-        // Daftar postingan milik user (halaman Kiriman Saya)
+    // Daftar postingan milik user (halaman Kiriman Saya)
     public function index()
     {
-        $posts = Auth::user()->posts()->with('category')->latest()->get()
+        $posts = Auth::user()->posts()->with(['category', 'extraCategories'])->latest()->get()
             ->map(fn (Post $p) => [
                 'id'               => $p->id,
                 'title'            => $p->title,
@@ -26,6 +25,7 @@ class PostController extends Controller
                 'display_status'   => $p->displayStatus(),
                 'rejection_reason' => $p->rejection_reason,
                 'category'         => $p->category->name,
+                'categories'       => $p->categoryNames(),
                 'image_url'        => $p->image ? '/storage/' . $p->image : null,
                 'can' => [
                     'edit'   => Gate::allows('update', $p),
@@ -58,6 +58,8 @@ class PostController extends Controller
         ]);
         // status TIDAK dari form: default database = draft
 
+        $post->extraCategories()->sync($this->extraIds($data));
+
         if ($request->input('action') === 'submit') {
             $post->markSubmitted();
         }
@@ -72,12 +74,13 @@ class PostController extends Controller
         return Inertia::render('User/PostEdit', [
             'categories' => Category::orderBy('name')->get(['id', 'name']),
             'post' => [
-                'id'               => $post->id,
-                'title'            => $post->title,
-                'content'          => $post->content,
-                'category_id'      => $post->category_id,
-                'rejection_reason' => $post->rejection_reason,
-                'image_url'        => $post->image ? '/storage/' . $post->image : null,
+                'id'                 => $post->id,
+                'title'              => $post->title,
+                'content'            => $post->content,
+                'category_id'        => $post->category_id,
+                'extra_category_ids' => $post->extraCategories->pluck('id')->values(),
+                'rejection_reason'   => $post->rejection_reason,
+                'image_url'          => $post->image ? '/storage/' . $post->image : null,
             ],
         ]);
     }
@@ -101,6 +104,9 @@ class PostController extends Controller
             $post->image = $request->file('image')->store('posts', 'public');
         }
         $post->save();
+
+        // Daftar kosong = semua kategori tambahan dilepas
+        $post->extraCategories()->sync($this->extraIds($data));
 
         if ($request->input('action') === 'submit') {
             $post->markSubmitted();
@@ -127,5 +133,16 @@ class PostController extends Controller
         $post->delete();
 
         return redirect()->route('user.posts.index');
+    }
+
+    // ID kategori tambahan yang bersih: angka, tanpa kembar, tanpa kategori utama
+    private function extraIds(array $data): array
+    {
+        return collect($data['extra_category_ids'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->reject(fn ($id) => $id === (int) $data['category_id'])
+            ->unique()
+            ->values()
+            ->all();
     }
 }

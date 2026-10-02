@@ -21,13 +21,19 @@ class PublicController extends Controller
         $q = $request->query('q');
 
         $posts = Post::active()
-            ->with(['category:id,name', 'user:id,name'])
+            ->with(['category:id,name', 'user:id,name', 'extraCategories'])
             ->when($q, fn ($query) => $query->where(function ($w) use ($q) {
                 $w->where('title', 'like', "%{$q}%")
                   ->orWhere('content', 'like', "%{$q}%");
             }))
-            ->when($request->filled('category'), fn ($query) =>
-                $query->where('category_id', $request->integer('category')))
+            // Kategori utama ATAU tambahan
+            ->when($request->filled('category'), function ($query) use ($request) {
+                $id = $request->integer('category');
+                $query->where(function ($w) use ($id) {
+                    $w->where('category_id', $id)
+                      ->orWhereHas('extraCategories', fn ($c) => $c->where('categories.id', $id));
+                });
+            })
             ->orderByDesc('is_pinned')      // pinned selalu di atas
             ->orderByDesc('published_at')   // lalu yang terbaru
             ->get()
@@ -37,6 +43,7 @@ class PublicController extends Controller
                 'excerpt'      => Str::limit(strip_tags($p->content), 110),
                 'image_url'    => $p->image ? Storage::url($p->image) : null,
                 'category'     => $p->category->name,
+                'categories'   => $p->categoryNames(),
                 'author'       => $p->user->name,
                 'is_pinned'    => $p->is_pinned,
                 'published_at' => $p->published_at->translatedFormat('d M Y'),

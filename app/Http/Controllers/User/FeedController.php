@@ -26,7 +26,7 @@ class FeedController extends Controller
         $q = $request->query('q');
 
         $posts = Post::active()
-            ->with(['category:id,name', 'user:id,name'])
+            ->with(['category:id,name', 'user:id,name', 'extraCategories'])
             // Tanpa pencarian: hanya 3 bulan terakhir (yang di-pin tetap tampil).
             // Dengan pencarian: semua postingan aktif bisa ditemukan.
             ->when(! $q, fn ($query) => $query->where(function ($w) {
@@ -37,8 +37,14 @@ class FeedController extends Controller
                 $w->where('title', 'like', "%{$q}%")
                   ->orWhere('content', 'like', "%{$q}%");
             }))
-            ->when($request->filled('category'), fn ($query) =>
-                $query->where('category_id', $request->integer('category')))
+            // Kategori utama ATAU tambahan
+            ->when($request->filled('category'), function ($query) use ($request) {
+                $id = $request->integer('category');
+                $query->where(function ($w) use ($id) {
+                    $w->where('category_id', $id)
+                      ->orWhereHas('extraCategories', fn ($c) => $c->where('categories.id', $id));
+                });
+            })
             ->when($request->boolean('spotlight'), fn ($query) =>
                 $query->where('is_pinned', true))
             ->orderByDesc('is_pinned')
@@ -51,6 +57,7 @@ class FeedController extends Controller
                 'excerpt'      => Str::limit(strip_tags($p->content), 110),
                 'image_url'    => $p->image ? Storage::url($p->image) : null,
                 'category'     => $p->category->name,
+                'categories'   => $p->categoryNames(),
                 'author'       => $p->user->name,
                 'is_pinned'    => $p->is_pinned,
                 'published_at' => $p->published_at->translatedFormat('d M Y'),
@@ -63,7 +70,6 @@ class FeedController extends Controller
                 'category'  => $request->query('category'),
                 'spotlight' => $request->boolean('spotlight'),
             ],
-            // Dua baris baru: layout dipilih sesuai peran, kategori untuk chip filter
             'isAdmin'    => $request->user()->isAdmin(),
             'categories' => Category::orderBy('name')->get(['id', 'name']),
         ]);

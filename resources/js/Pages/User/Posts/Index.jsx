@@ -84,7 +84,7 @@ export default function Index({ posts }) {
 
                         <div className="flex flex-1 flex-col gap-3 p-5">
                             <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs font-medium text-ink/60">{p.category}</span>
+                                <span className="text-xs font-medium text-ink/60">{(p.categories ?? [p.category]).join(' · ')}</span>
                                 <StatusBadge status={p.display_status} />
                             </div>
 
