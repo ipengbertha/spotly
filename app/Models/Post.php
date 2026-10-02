@@ -16,6 +16,7 @@ class Post extends Model
     public const PUBLISHED = 'published';
     public const REJECTED = 'rejected';
     public const ARCHIVED = 'archived';
+    public const MAX_PINNED = 3;
 
     // status, is_pinned, dll. sengaja TIDAK di-fillable:
     // user tidak boleh mengubahnya lewat form. Diatur di controller/service.
@@ -105,6 +106,25 @@ class Post extends Model
             'status'           => self::REJECTED,
             'rejection_reason' => $reason,
         ])->save();
+    }
+
+    // Sedang tayang sekarang (sama dengan scopeActive, tapi untuk satu objek)
+    public function isActive(): bool
+    {
+        return $this->status === self::PUBLISHED
+            && $this->published_at !== null
+            && $this->published_at->lte(now())
+            && ($this->expired_at === null || $this->expired_at->gt(now()));
+    }
+
+    public function setExpiry(Carbon $expiredAt): void
+    {
+        $this->forceFill(['expired_at' => $expiredAt])->save();
+    }
+
+    public function setPinned(bool $pinned): void
+    {
+        $this->forceFill(['is_pinned' => $pinned])->save();
     }
 
     public function displayStatus(): string

@@ -19,10 +19,15 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = ['name', 'email', 'password', 'role', 'username', 'phone',];
-
+    protected $attributes = ['is_active' => true];
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function setActive(bool $active): void
+    {
+        $this->forceFill(['is_active' => $active])->save();
     }
 
     public function posts()    { return $this->hasMany(Post::class); }
@@ -49,6 +54,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 }

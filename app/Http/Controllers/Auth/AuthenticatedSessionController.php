@@ -14,7 +14,7 @@ class AuthenticatedSessionController extends Controller
         return Inertia::render('Auth/Login');
     }
 
-    public function store(Request $request)
+        public function store(Request $request)
     {
         $credentials = $request->validate([
             'email'    => ['required', 'email'],
@@ -25,6 +25,15 @@ class AuthenticatedSessionController extends Controller
             // Pesan sengaja umum: tidak membocorkan apakah email terdaftar
             return back()
                 ->withErrors(['email' => 'Email atau password salah.'])
+                ->onlyInput('email');
+        }
+
+        // BLOK BARU: tolak akun yang dinonaktifkan admin
+        if (! Auth::user()->is_active) {
+            Auth::logout();
+
+            return back()
+                ->withErrors(['email' => 'Akun kamu dinonaktifkan. Hubungi admin.'])
                 ->onlyInput('email');
         }
 

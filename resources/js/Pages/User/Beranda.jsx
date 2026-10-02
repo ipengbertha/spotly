@@ -1,6 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import UserLayout from '../../Layouts/UserLayout';
 import PostCard from '../../Components/PostCard';
+import AdminLayout from '../../Layouts/AdminLayout';
 
 function Chip({ href, active, children }) {
     return (
@@ -14,7 +15,8 @@ function Chip({ href, active, children }) {
     );
 }
 
-export default function Beranda({ posts, filters }) {
+export default function Beranda({ posts, filters, isAdmin }) {
+    const Layout = isAdmin ? AdminLayout : UserLayout;
     const { auth, categories = [] } = usePage().props;
     const catName = categories.find((c) => String(c.id) === String(filters.category))?.name;
 
@@ -35,7 +37,7 @@ export default function Beranda({ posts, filters }) {
     const noCategory = !filters.category && !filters.spotlight;
 
     return (
-        <UserLayout>
+        <Layout tittle="Mading">
             <Head title="Beranda" />
 
             {!isFiltering && (
@@ -97,6 +99,6 @@ export default function Beranda({ posts, filters }) {
                     )}
                 </div>
             )}
-        </UserLayout>
+        </Layout>
     );
 }

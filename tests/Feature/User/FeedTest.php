@@ -34,11 +34,11 @@ class FeedTest extends TestCase
         $this->get('/user/beranda')->assertRedirect('/login');
     }
 
-    public function test_admin_cannot_open_user_feed(): void
+    public function test_admin_can_open_feed(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $this->actingAs($admin)->get('/user/beranda')->assertForbidden();
+        $this->actingAs($admin)->get('/user/beranda')->assertOk();
     }
 
     public function test_feed_shows_only_active_posts(): void

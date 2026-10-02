@@ -76,15 +76,21 @@ export default function AdminLayout({ title, children }) {
     const user = props.auth?.user;
     const [open, setOpen] = useState(false);
     const u = new URL(url, 'http://localhost');
-    const [q, setQ] = useState(u.pathname === '/admin/reviews' ? (u.searchParams.get('q') ?? '') : '');
+    const onMading = u.pathname === '/user/beranda';
+    const onUsers = u.pathname.startsWith('/admin/users');
+    const searchPath = onMading ? '/user/beranda' : onUsers ? '/admin/users' : '/admin/reviews';
+    const [q, setQ] = useState(u.pathname === searchPath ? (u.searchParams.get('q') ?? '') : '');
 
     const search = (e) => {
         e.preventDefault();
-        router.get('/admin/reviews', q ? { q } : {});
+        router.get(searchPath, q ? { q } : {});
     };
 
     const isDash = url.startsWith('/admin/dashboard');
     const isReview = url.startsWith('/admin/reviews');
+    const isPosts = url.startsWith('/admin/posts');
+    const isCategories = url.startsWith('/admin/categories');
+    const isUsers = url.startsWith('/admin/users');
     const initial = (user?.name ?? '?').trim().charAt(0).toUpperCase();
     const today = new Date().toLocaleDateString('id-ID', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -94,16 +100,16 @@ export default function AdminLayout({ title, children }) {
     const groups = [
         ['Utama', [
             { icon: 'dash',    label: 'Dashboard', href: '/admin/dashboard', active: isDash },
-            { icon: 'home',    label: 'Mading',    href: '/' },
+            { icon: 'home',    label: 'Mading',    href: '/user/beranda', active: isMading },
         ]],
         ['Konten', [
-            { icon: 'doc',     label: 'Postingan', soon: true },
+            { icon: 'doc',     label: 'Postingan', href: '/admin/posts', active: isPosts },
             { icon: 'clock',   label: 'Review',    href: '/admin/reviews', active: isReview },
             { icon: 'archive', label: 'Arsip',     soon: true },
         ]],
         ['Manajemen', [
-            { icon: 'tag',     label: 'Kategori',  soon: true },
-            { icon: 'users',   label: 'Pengguna',  soon: true },
+            { icon: 'tag',     label: 'Kategori',  href: '/admin/categories', active: isCategories },
+            { icon: 'users',   label: 'Pengguna',  href: '/admin/users', active: isUsers },
         ]],
         ['Akun', [
             { icon: 'bell',    label: 'Notifikasi', soon: true },
@@ -180,7 +186,7 @@ export default function AdminLayout({ title, children }) {
                         <form onSubmit={search} className="relative ml-2 hidden w-full max-w-sm sm:block">
                             <Ico name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
                             <input value={q} onChange={(e) => setQ(e.target.value)}
-                                placeholder="Cari di antrean review..."
+                                placeholder={onMading ? 'Cari informasi...' : onUsers ? 'Cari pengguna...' : 'Cari di antrean review...'}
                                 className="w-full rounded-full border border-ink/10 bg-cream/70 py-2 pl-10 pr-4 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20" />
                         </form>
 
