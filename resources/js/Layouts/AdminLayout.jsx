@@ -83,10 +83,12 @@ export default function AdminLayout({ title, children }) {
     const onReviews = u.pathname.startsWith('/admin/reviews');
     const onArchive = u.pathname.startsWith('/admin/archive');
     const onCategories = u.pathname.startsWith('/admin/categories');
+    const onPosts = u.pathname.startsWith('/admin/posts');
     const searchPath = onMading ? '/user/beranda'
         : onUsers ? '/admin/users'
         : onArchive ? '/admin/archive'
         : onCategories ? '/admin/categories'
+        : onPosts ? '/admin/posts'
         : '/admin/reviews';
     const [q, setQ] = useState(u.pathname === searchPath ? (u.searchParams.get('q') ?? '') : '');
 
@@ -193,16 +195,20 @@ export default function AdminLayout({ title, children }) {
 
                         <h1 className="truncate pl-2 text-xl text-ink">{title}</h1>
 
-                        {(onMading || onUsers || onReviews || onArchive || onCategories) && (
-                            <form onSubmit={search} className="relative ml-2 hidden w-full max-w-sm sm:block">
-                                <Ico name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
+                            {(onMading || onUsers || onReviews || onArchive || onCategories || onPosts) && (
+                                                        <form onSubmit={search} className="relative ml-2 hidden w-full max-w-md sm:block">
                                 <input value={q} onChange={(e) => setQ(e.target.value)}
                                     placeholder={onMading ? 'Cari informasi...'
                                         : onUsers ? 'Cari pengguna...'
                                         : onArchive ? 'Cari di arsip...'
                                         : onCategories ? 'Cari kategori...'
+                                        : onPosts ? 'Cari postingan...'
                                         : 'Cari di antrean review...'}
-                                    className="w-full rounded-full border border-ink/10 bg-cream/70 py-2 pl-10 pr-4 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20" />
+                                    className="w-full rounded-full border border-ink/10 bg-cream/70 py-2 pl-4 pr-12 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20" />
+                                <button type="submit" aria-label="Cari"
+                                    className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-brand text-white shadow-sm hover:opacity-90">
+                                    <Ico name="search" className="h-4 w-4" />
+                                </button>
                             </form>
                         )}
 

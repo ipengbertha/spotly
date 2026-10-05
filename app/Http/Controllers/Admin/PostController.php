@@ -12,11 +12,15 @@ use Inertia\Inertia;
 
 class PostController extends Controller
 {
-    public function index()
+        public function index(Request $request)
     {
+        $request->validate(['q' => ['nullable', 'string', 'max:100']]);
+        $q = $request->query('q');
+
         return Inertia::render('Admin/Posts/Index', [
             'posts' => Post::active()
                 ->with(['user:id,name', 'category:id,name'])
+                ->when($q, fn ($query) => $query->where('title', 'like', "%{$q}%"))
                 ->orderByDesc('is_pinned')
                 ->orderByDesc('published_at')
                 ->paginate(10)
@@ -31,8 +35,10 @@ class PostController extends Controller
                     'expired_label'   => $p->expired_at?->translatedFormat('d M Y') ?? 'Tanpa batas',
                     'expired_input'   => $p->expired_at?->toDateString() ?? '',
                 ]),
+            // Dihitung dari semua postingan tayang, bukan hanya hasil pencarian
             'pinnedCount' => Post::active()->where('is_pinned', true)->count(),
             'maxPinned'   => Post::MAX_PINNED,
+            'filters'     => ['q' => $q],
         ]);
     }
 

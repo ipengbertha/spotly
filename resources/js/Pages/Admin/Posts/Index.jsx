@@ -21,7 +21,7 @@ function Modal({ title, onClose, children }) {
     );
 }
 
-export default function Index({ posts, pinnedCount, maxPinned }) {
+export default function Index({ posts, pinnedCount, maxPinned, filters }) {
     const { errors } = usePage().props;
     const [editing, setEditing] = useState(null);
     const form = useForm({ expired_at: '' });
@@ -99,7 +99,9 @@ export default function Index({ posts, pinnedCount, maxPinned }) {
                         {posts.data.length === 0 && (
                             <tr>
                                 <td colSpan={6} className="p-8 text-center text-ink/60">
-                                    Belum ada postingan yang sedang tayang.
+                                    {filters?.q
+                                        ? 'Tidak ada postingan yang cocok.'
+                                        : 'Belum ada postingan yang sedang tayang.'}
                                 </td>
                             </tr>
                         )}
