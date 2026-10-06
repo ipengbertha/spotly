@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\PostRequest;
 use App\Models\Category;
 use App\Models\Post;
+use App\Models\User;
+use App\Notifications\PostSubmitted;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -62,6 +65,7 @@ class PostController extends Controller
 
         if ($request->input('action') === 'submit') {
             $post->markSubmitted();
+            $this->notifyAdmins($post);
         }
 
         return redirect()->route('user.posts.index');
@@ -110,6 +114,7 @@ class PostController extends Controller
 
         if ($request->input('action') === 'submit') {
             $post->markSubmitted();
+            $this->notifyAdmins($post);
         }
 
         return redirect()->route('user.posts.index');
@@ -119,6 +124,7 @@ class PostController extends Controller
     {
         Gate::authorize('submit', $post);
         $post->markSubmitted();
+        $this->notifyAdmins($post);
 
         return redirect()->route('user.posts.index');
     }
@@ -135,6 +141,14 @@ class PostController extends Controller
         return redirect()->route('user.posts.index');
     }
 
+    // Beri tahu semua admin aktif bahwa ada postingan menunggu review
+    private function notifyAdmins(Post $post): void
+    {
+        $admins = User::where('role', 'admin')->where('is_active', true)->get();
+
+        Notification::send($admins, new PostSubmitted($post));
+    }
+
     // ID kategori tambahan yang bersih: angka, tanpa kembar, tanpa kategori utama
     private function extraIds(array $data): array
     {
@@ -145,4 +159,4 @@ class PostController extends Controller
             ->values()
             ->all();
     }
-}
+}   

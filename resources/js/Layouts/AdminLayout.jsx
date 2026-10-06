@@ -40,7 +40,7 @@ const BASE =
     'group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition ' +
     'lg:h-9 lg:w-9 lg:justify-center lg:rounded-full lg:p-0';
 
-function NavItem({ icon, label, href, active, soon }) {
+function NavItem({ icon, label, href, active, soon, badge }) {
     const content = (
         <>
             <Ico name={icon} className="h-5 w-5 shrink-0" />
@@ -48,6 +48,11 @@ function NavItem({ icon, label, href, active, soon }) {
                 {label}
                 {soon && <span className="ml-2 text-[10px] font-medium text-ink/40">segera</span>}
             </span>
+            {badge > 0 && (
+                <span className="absolute right-2 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-white ring-2 ring-white lg:-right-0.5 lg:-top-0.5 lg:ring-ink">
+                    {badge > 9 ? '9+' : badge}
+                </span>
+            )}
             <Tip>{soon ? `${label} (segera)` : label}</Tip>
         </>
     );
@@ -103,6 +108,8 @@ export default function AdminLayout({ title, children }) {
     const isCategories = url.startsWith('/admin/categories');
     const isUsers = url.startsWith('/admin/users');
     const isArchive = url.startsWith('/admin/archive');
+    const isNotif = u.pathname.startsWith('/notifications');
+    const unread = props.unreadNotifications ?? 0;
     const initial = (user?.name ?? '?').trim().charAt(0).toUpperCase();
     const today = new Date().toLocaleDateString('id-ID', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -124,7 +131,7 @@ export default function AdminLayout({ title, children }) {
             { icon: 'users',   label: 'Pengguna',  href: '/admin/users', active: isUsers },
         ]],
         ['Akun', [
-            { icon: 'bell',    label: 'Notifikasi', soon: true },
+                        { icon: 'bell',    label: 'Notifikasi', href: '/notifications', active: isNotif, badge: unread },
             { icon: 'gear',    label: 'Pengaturan', soon: true },
         ]],
     ];

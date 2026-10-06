@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\PublicController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\FeedController;
 use App\Http\Controllers\User\PostController;
@@ -35,6 +36,13 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 // Mading: bisa dibuka user dan admin (sengaja di luar grup admin/user)
 Route::middleware(['auth', EnsureUserIsActive::class])
     ->get('/user/beranda', [FeedController::class, 'index'])->name('user.beranda');
+
+// Notifikasi: bisa dibuka user dan admin
+Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readAll');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
+});
 
 // Area Admin
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {

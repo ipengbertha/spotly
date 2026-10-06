@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Post;
+use App\Notifications\PostApproved;
+use App\Notifications\PostRejected;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -44,6 +46,8 @@ class ReviewController extends Controller
 
         $post->markPublished(Carbon::parse($data['expired_at'])->endOfDay());
 
+        $post->user?->notify(new PostApproved($post));
+
         return redirect()->route('admin.reviews.index');
     }
 
@@ -62,6 +66,8 @@ class ReviewController extends Controller
         ]);
 
         $post->markRejected($data['rejection_reason']);
+
+        $post->user?->notify(new PostRejected($post));
 
         return redirect()->route('admin.reviews.index');
     }
