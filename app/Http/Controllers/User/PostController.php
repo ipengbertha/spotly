@@ -144,7 +144,8 @@ class PostController extends Controller
     // Beri tahu semua admin aktif bahwa ada postingan menunggu review
     private function notifyAdmins(Post $post): void
     {
-        $admins = User::where('role', 'admin')->where('is_active', true)->get();
+        $admins = User::where('role', 'admin')->where('is_active', true)->get()
+            ->filter(fn (User $admin) => $admin->wantsNotification('post_submitted'));
 
         Notification::send($admins, new PostSubmitted($post));
     }

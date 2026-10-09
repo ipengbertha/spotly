@@ -10,6 +10,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\FeedController;
 use App\Http\Controllers\User\PostController;
@@ -33,6 +34,9 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
+// Lupa password: baru halaman (belum mengirim e-mail). Terbuka untuk tamu dan yang sudah login
+Route::inertia('/forgot-password', 'Auth/ForgotPassword')->name('password.request');
+
 // Mading: bisa dibuka user dan admin (sengaja di luar grup admin/user)
 Route::middleware(['auth', EnsureUserIsActive::class])
     ->get('/user/beranda', [FeedController::class, 'index'])->name('user.beranda');
@@ -42,6 +46,18 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readAll');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
+});
+
+// Pengaturan: bisa dibuka user dan admin
+// Pengaturan: bisa dibuka user dan admin
+Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    // POST (bukan PATCH) karena form membawa file foto
+    Route::post('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
+    Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
+    Route::put('/settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications');
+    // Hanya admin (dicek juga di controller dengan abort_unless)
+    Route::put('/settings/mading', [SettingsController::class, 'updateMading'])->name('settings.mading');
 });
 
 // Area Admin

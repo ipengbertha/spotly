@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Post;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -52,6 +53,7 @@ class PublicController extends Controller
         return Inertia::render('Home', [
             'posts'      => $posts,
             'categories' => Category::orderBy('name')->get(['id', 'name']),
+            'mading'     => Setting::mading(),
             'filters'    => [
                 'q'        => $q,
                 'category' => $request->query('category'),

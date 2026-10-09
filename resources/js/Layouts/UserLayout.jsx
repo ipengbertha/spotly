@@ -88,6 +88,7 @@ export default function UserLayout({ children }) {
     const isCreate = u.pathname === '/user/posts/create';
     const isMine = u.pathname.startsWith('/user/posts') && !isCreate;
     const isNotif = u.pathname.startsWith('/notifications');
+    const isSettings = u.pathname.startsWith('/settings');
     const unread = props.unreadNotifications ?? 0;
 
     const [open, setOpen] = useState(false);
@@ -119,7 +120,7 @@ export default function UserLayout({ children }) {
         ['Akun', [
             { icon: 'bell',  label: 'Notifikasi',     href: '/notifications', active: isNotif, badge: unread },
             { icon: 'user',  label: 'Profil',         soon: true },
-            { icon: 'gear',  label: 'Pengaturan',     soon: true },
+            { icon: 'gear',  label: 'Pengaturan',     href: '/settings', active: isSettings },
         ]],
     ];
 
@@ -203,9 +204,13 @@ export default function UserLayout({ children }) {
                             <div className="relative">
                                 <button onClick={() => setMenu(!menu)}
                                     className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 hover:bg-ink/5">
-                                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-grape text-sm font-bold text-white">
-                                        {initial}
-                                    </span>
+                                    {user?.avatar_url ? (
+                                        <img src={user.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+                                    ) : (
+                                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-grape text-sm font-bold text-white">
+                                            {initial}
+                                        </span>
+                                    )}
                                     <span className="hidden max-w-32 truncate text-sm font-semibold md:block">{user?.name}</span>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                                         strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-ink/50" aria-hidden="true">

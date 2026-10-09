@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Post;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -12,7 +13,6 @@ use Inertia\Inertia;
 
 class FeedController extends Controller
 {
-    private const PER_PAGE = 12;
     private const WINDOW_MONTHS = 3;
 
     public function index(Request $request)
@@ -49,7 +49,7 @@ class FeedController extends Controller
                 $query->where('is_pinned', true))
             ->orderByDesc('is_pinned')
             ->orderByDesc('published_at')
-            ->paginate(self::PER_PAGE)
+            ->paginate(Setting::perPage())
             ->withQueryString()
             ->through(fn (Post $p) => [
                 'id'           => $p->id,

@@ -54,7 +54,7 @@ const WHY = [
     ['check', 'Terkelola', 'Setiap postingan ditinjau sebelum tayang.'],
 ];
 
-export default function Home({ posts, categories, filters }) {
+export default function Home({ posts, categories, filters, mading }) {
     const user = usePage().props.auth?.user;
     const [q, setQ] = useState(filters.q ?? '');
     const [showAll, setShowAll] = useState(false);
@@ -92,14 +92,14 @@ export default function Home({ posts, categories, filters }) {
                 <div className="relative mx-auto grid w-full max-w-7xl items-center gap-4 px-6 pb-10 pt-4 lg:grid-cols-2 lg:gap-2 lg:px-10 lg:pb-12 lg:pt-2">
                     <div>
                         <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-xs font-bold text-brand shadow-md">
-                            <Icon name="pin" className="h-4 w-4" /> Mading digital sekolah
+                            <Icon name="pin" className="h-4 w-4" />{mading.description}
                         </span>
                         <h1 className="mt-4 text-4xl font-bold leading-tight text-ink sm:text-5xl lg:text-6xl">
                             Satu Spot untuk Semua{' '}
                             <span className="text-brand">Kreativitas</span>
                         </h1>
                         <p className="mt-4 max-w-xl text-lg text-ink/85">
-                            Spotly adalah mading digital sekolah tempat siswa membagikan informasi, karya, kegiatan, dan pencapaian secara terorganisir.
+                            {mading.name} adalah mading digital sekolah tempat siswa membagikan informasi, karya, kegiatan, dan pencapaian secara terorganisir.
                         </p>
                         <div className="mt-6 flex flex-wrap gap-3">
                             <a href="#mading" className="rounded-xl bg-brand px-6 py-3 font-semibold text-white shadow-lg shadow-brand/40 transition hover:-translate-y-1 hover:shadow-xl">Jelajahi Mading</a>

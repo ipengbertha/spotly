@@ -18,7 +18,7 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    protected $fillable = ['name', 'email', 'password', 'role', 'username', 'phone',];
+    protected $fillable = ['name', 'email', 'password', 'role', 'username', 'phone', 'bio'];
     protected $attributes = ['is_active' => true];
     public function isAdmin(): bool
     {
@@ -55,6 +55,13 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'notification_preferences' => 'array',
         ];
+    }
+
+        // Preferensi notifikasi: kalau belum pernah diatur, semuanya dianggap aktif
+    public function wantsNotification(string $key): bool
+    {
+        return (bool) (($this->notification_preferences ?? [])[$key] ?? true);
     }
 }

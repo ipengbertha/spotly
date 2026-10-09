@@ -17,20 +17,25 @@ class HandleInertiaRequests extends Middleware
 
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'auth' => [
                 // Hanya kirim data yang aman dan perlu (jangan seluruh model)
-                'user' => $request->user()
-                    ? $request->user()->only('id', 'name', 'email', 'role')
+                'user' => $user
+                    ? [
+                        ...$user->only('id', 'name', 'email', 'role'),
+                        'avatar_url' => $user->avatar ? '/storage/' . $user->avatar : null,
+                    ]
                     : null,
             ],
-            'categories' => fn () => $request->user()
+            'categories' => fn () => $user
                 ? Category::orderBy('name')->get(['id', 'name'])
                 : [],
             // Jumlah notifikasi belum dibaca (untuk badge lonceng)
-            'unreadNotifications' => fn () => $request->user()
-                ? $request->user()->unreadNotifications()->count()
+            'unreadNotifications' => fn () => $user
+                ? $user->unreadNotifications()->count()
                 : 0,
         ];
     }

@@ -109,6 +109,7 @@ export default function AdminLayout({ title, children }) {
     const isUsers = url.startsWith('/admin/users');
     const isArchive = url.startsWith('/admin/archive');
     const isNotif = u.pathname.startsWith('/notifications');
+        const isSettings = u.pathname.startsWith('/settings');
     const unread = props.unreadNotifications ?? 0;
     const initial = (user?.name ?? '?').trim().charAt(0).toUpperCase();
     const today = new Date().toLocaleDateString('id-ID', {
@@ -131,8 +132,8 @@ export default function AdminLayout({ title, children }) {
             { icon: 'users',   label: 'Pengguna',  href: '/admin/users', active: isUsers },
         ]],
         ['Akun', [
-                        { icon: 'bell',    label: 'Notifikasi', href: '/notifications', active: isNotif, badge: unread },
-            { icon: 'gear',    label: 'Pengaturan', soon: true },
+            { icon: 'bell',    label: 'Notifikasi', href: '/notifications', active: isNotif, badge: unread },
+            { icon: 'gear',    label: 'Pengaturan', href: '/settings', active: isSettings },
         ]],
     ];
 
@@ -230,9 +231,13 @@ export default function AdminLayout({ title, children }) {
                                 </Link>
                             )}
                             <div className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2">
-                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-grape text-sm font-bold text-white">
-                                    {initial}
-                                </span>
+                                {user?.avatar_url ? (
+                                    <img src={user.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+                                ) : (
+                                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-grape text-sm font-bold text-white">
+                                        {initial}
+                                    </span>
+                                )}
                                 <span className="hidden max-w-32 truncate text-sm font-semibold md:block">{user?.name}</span>
                             </div>
                         </div>

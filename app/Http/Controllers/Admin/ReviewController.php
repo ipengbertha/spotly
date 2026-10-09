@@ -46,7 +46,9 @@ class ReviewController extends Controller
 
         $post->markPublished(Carbon::parse($data['expired_at'])->endOfDay());
 
-        $post->user?->notify(new PostApproved($post));
+        if ($post->user?->wantsNotification('post_approved')) {
+            $post->user->notify(new PostApproved($post));
+        }
 
         return redirect()->route('admin.reviews.index');
     }
@@ -67,7 +69,9 @@ class ReviewController extends Controller
 
         $post->markRejected($data['rejection_reason']);
 
-        $post->user?->notify(new PostRejected($post));
+        if ($post->user?->wantsNotification('post_rejected')) {
+            $post->user->notify(new PostRejected($post));
+        }
 
         return redirect()->route('admin.reviews.index');
     }
