@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { Link, useForm } from '@inertiajs/react';
-import TextField from './TextField';
 import ConfirmDialog, { SUBMIT_WARNING } from './ConfirmDialog';
 
 const MAX_EXTRA = 2;
+
+const INPUT =
+    'w-full rounded-xl border border-ink/15 px-3 py-2 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20';
+const LABEL = 'mb-1 block text-sm font-semibold text-ink';
 
 export default function PostForm({ categories, post = null }) {
     const { data, setData, post: send, transform, processing, errors } = useForm({
@@ -46,27 +49,31 @@ export default function PostForm({ categories, post = null }) {
     return (
         <>
             <form onSubmit={(e) => { e.preventDefault(); sendWith('draft'); }}
-                className="space-y-4 rounded-2xl bg-white p-6 shadow ring-1 ring-slate-200">
-                <TextField label="Judul" value={data.title}
-                    onChange={(e) => setData('title', e.target.value)} error={errors.title} />
-
+                className="space-y-5 rounded-3xl bg-white p-6 shadow-md ring-1 ring-ink/5">
                 <div>
-                    <label className="block text-sm font-semibold text-slate-700">Kategori utama</label>
-                    <select value={data.category_id} onChange={(e) => changePrimary(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
-                        <option value="">Pilih kategori</option>
-                        {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                    {errors.category_id && <p className="mt-1 text-sm text-red-600">{errors.category_id}</p>}
+                    <label className={LABEL}>Judul</label>
+                    <input value={data.title} onChange={(e) => setData('title', e.target.value)}
+                        placeholder="Tulis judul postingan" className={INPUT} />
+                    {errors.title && <p className="mt-1 text-sm text-brand">{errors.title}</p>}
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold text-slate-700">
+                    <label className={LABEL}>Kategori utama</label>
+                    <select value={data.category_id} onChange={(e) => changePrimary(e.target.value)}
+                        className={INPUT}>
+                        <option value="">Pilih kategori</option>
+                        {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    {errors.category_id && <p className="mt-1 text-sm text-brand">{errors.category_id}</p>}
+                </div>
+
+                <div>
+                    <label className={LABEL}>
                         Kategori tambahan{' '}
-                        <span className="font-normal text-slate-500">(opsional, maksimal {MAX_EXTRA})</span>
+                        <span className="font-normal text-ink/50">(opsional, maksimal {MAX_EXTRA})</span>
                     </label>
                     {data.category_id === '' ? (
-                        <p className="mt-1 text-sm text-slate-500">Pilih kategori utama dulu.</p>
+                        <p className="text-sm text-ink/50">Pilih kategori utama dulu.</p>
                     ) : (
                         <div className="mt-2 flex flex-wrap gap-2">
                             {extraOptions.map((c) => {
@@ -74,10 +81,10 @@ export default function PostForm({ categories, post = null }) {
                                 const locked = !checked && data.extra_category_ids.length >= MAX_EXTRA;
                                 return (
                                     <label key={c.id}
-                                        className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm ring-1 ${
+                                        className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold transition ${
                                             checked
-                                                ? 'bg-slate-900 text-white ring-slate-900'
-                                                : 'bg-white text-slate-700 ring-slate-300'
+                                                ? 'bg-brand text-white shadow-sm'
+                                                : 'bg-white text-ink/70 ring-1 ring-ink/10 hover:bg-peach/40'
                                         } ${locked ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}`}>
                                         <input type="checkbox" className="sr-only" checked={checked}
                                             disabled={locked} onChange={() => toggleExtra(c.id)} />
@@ -87,34 +94,47 @@ export default function PostForm({ categories, post = null }) {
                             })}
                         </div>
                     )}
-                    {extraError && <p className="mt-1 text-sm text-red-600">{extraError}</p>}
+                    {extraError && <p className="mt-1 text-sm text-brand">{extraError}</p>}
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold text-slate-700">Isi</label>
+                    <label className={LABEL}>Isi</label>
                     <textarea rows={6} value={data.content} onChange={(e) => setData('content', e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
-                    {errors.content && <p className="mt-1 text-sm text-red-600">{errors.content}</p>}
+                        placeholder="Tulis isi postingan" className={INPUT} />
+                    {errors.content && <p className="mt-1 text-sm text-brand">{errors.content}</p>}
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold text-slate-700">Gambar / poster (jpg, png, webp, maks 2 MB)</label>
-                    {post?.image_url && <img src={post.image_url} alt="" className="mt-2 h-32 rounded-lg object-cover" />}
-                    <input type="file" accept="image/jpeg,image/png,image/webp"
-                        onChange={(e) => setData('image', e.target.files[0])} className="mt-2 block text-sm" />
-                    {errors.image && <p className="mt-1 text-sm text-red-600">{errors.image}</p>}
+                    <label className={LABEL}>Gambar / poster</label>
+                    {post?.image_url && (
+                        <img src={post.image_url} alt="" className="mb-3 h-32 rounded-2xl object-cover ring-1 ring-ink/10" />
+                    )}
+                    <div className="flex flex-wrap items-center gap-3">
+                        <label className="cursor-pointer rounded-full bg-grape/10 px-4 py-2 text-sm font-semibold text-grape hover:bg-grape/20">
+                            {post?.image_url ? 'Ganti gambar' : 'Pilih gambar'}
+                            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                                onChange={(e) => setData('image', e.target.files[0] ?? null)} />
+                        </label>
+                        <span className="min-w-0 truncate text-sm text-ink/60">
+                            {data.image ? data.image.name : 'Belum ada gambar baru dipilih'}
+                        </span>
+                    </div>
+                    <p className="mt-1.5 text-xs text-ink/50">JPG, PNG, atau WEBP. Maksimal 2 MB.</p>
+                    {errors.image && <p className="mt-1 text-sm text-brand">{errors.image}</p>}
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-wrap items-center gap-3 pt-2">
                     <button type="button" disabled={processing} onClick={() => sendWith('draft')}
-                        className="rounded-lg bg-white px-4 py-2 font-semibold ring-1 ring-slate-300 disabled:opacity-50">
+                        className="rounded-full border border-ink/20 px-5 py-2 text-sm font-semibold text-ink hover:bg-ink/5 disabled:opacity-50">
                         Simpan draft
                     </button>
                     <button type="button" disabled={processing} onClick={() => setConfirming(true)}
-                        className="rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white disabled:opacity-50">
+                        className="rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
                         Kirim untuk review
                     </button>
-                    <Link href="/user/dashboard" className="px-4 py-2 text-slate-600">Batal</Link>
+                    <Link href="/user/dashboard" className="px-3 py-2 text-sm font-semibold text-ink/60 hover:text-ink">
+                        Batal
+                    </Link>
                 </div>
             </form>
 

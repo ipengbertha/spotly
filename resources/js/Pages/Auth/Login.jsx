@@ -22,11 +22,16 @@ export default function Login() {
                     onChange={(e) => setData('email', e.target.value)} error={errors.email} />
                 <TextField label="Password" type="password" value={data.password}
                     onChange={(e) => setData('password', e.target.value)} error={errors.password} />
-                <label className="flex items-center gap-2 text-sm text-slate-600">
-                    <input type="checkbox" checked={data.remember}
-                        onChange={(e) => setData('remember', e.target.checked)} />
-                    Ingat saya
-                </label>
+                                <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 text-sm text-slate-600">
+                        <input type="checkbox" checked={data.remember}
+                            onChange={(e) => setData('remember', e.target.checked)} />
+                        Ingat saya
+                    </label>
+                    <Link href="/forgot-password" className="text-sm font-semibold text-amber-600 hover:underline">
+                        Lupa password?
+                    </Link>
+                </div>
                 <button disabled={processing}
                     className="w-full rounded-lg bg-slate-900 py-2 font-semibold text-white hover:bg-slate-700 disabled:opacity-50">
                     Masuk

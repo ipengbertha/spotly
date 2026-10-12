@@ -30,13 +30,32 @@ class PostRequest extends FormRequest
         ];
     }
 
-    public function messages(): array
+        public function messages(): array
     {
         return [
+            'title.required'   => 'Judul wajib diisi.',
+            'title.string'     => 'Judul tidak valid.',
+            'title.max'        => 'Judul maksimal 150 karakter.',
+
+            'content.required' => 'Isi postingan wajib diisi.',
+            'content.string'   => 'Isi postingan tidak valid.',
+            'content.max'      => 'Isi postingan maksimal 5000 karakter.',
+
+            'category_id.required' => 'Kategori utama wajib dipilih.',
+            'category_id.exists'   => 'Kategori utama tidak ditemukan.',
+
+            'extra_category_ids.array'      => 'Kategori tambahan tidak valid.',
             'extra_category_ids.max'        => 'Kategori tambahan maksimal ' . self::MAX_EXTRA_CATEGORIES . '.',
             'extra_category_ids.*.integer'  => 'Kategori tambahan tidak valid.',
             'extra_category_ids.*.distinct' => 'Kategori tambahan tidak boleh kembar.',
             'extra_category_ids.*.exists'   => 'Kategori tambahan tidak ditemukan.',
+
+            'image.image' => 'File harus berupa gambar.',
+            'image.mimes' => 'Gambar harus berformat JPG, PNG, atau WEBP.',
+            'image.max'   => 'Ukuran gambar maksimal 2 MB.',
+            'image.uploaded' => 'Gambar gagal diunggah. Coba file yang lebih kecil dari 2 MB.',
+
+            'action.in' => 'Aksi tidak valid.',
         ];
     }
 
