@@ -11,6 +11,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\PostShowController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\FeedController;
 use App\Http\Controllers\User\PostController;
@@ -19,6 +20,9 @@ use Illuminate\Support\Facades\Route;
 
 // Halaman publik
 Route::get('/', [PublicController::class, 'home'])->name('home');
+
+//Detail admin
+Route::get('/posts/{post:slug}', PostShowController::class)->name('posts.show');
 
 // Hanya untuk tamu (yang belum login)
 Route::middleware('guest')->group(function () {

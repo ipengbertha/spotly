@@ -1,11 +1,17 @@
+import { Link } from '@inertiajs/react';
 import Icon from './Icon';
 
 export default function PostCard({ p, big = false }) {
     const h = big ? 'h-72' : 'h-52';
     const names = p.categories?.length ? p.categories : [p.category];
 
+    // Kartu menjadi tautan ke halaman detail. Kalau slug belum dikirim controller, kartu tampil biasa (tanpa tautan).
+    const Root = p.slug ? Link : 'article';
+    const rootProps = p.slug ? { href: `/posts/${p.slug}` } : {};
+
     return (
-        <article className="group h-full overflow-hidden rounded-2xl border-2 border-peach bg-white shadow-md transition duration-300 hover:-translate-y-2 hover:border-brand hover:shadow-2xl">
+        <Root {...rootProps}
+            className="group block h-full overflow-hidden rounded-2xl border-2 border-peach bg-white shadow-md transition duration-300 hover:-translate-y-2 hover:border-brand hover:shadow-2xl">
             <div className="relative overflow-hidden">
                 {p.image_url
                     ? <img src={p.image_url} alt="" className={`w-full object-cover transition duration-500 group-hover:scale-110 ${h}`} />
@@ -28,6 +34,6 @@ export default function PostCard({ p, big = false }) {
                 <p className="text-sm text-ink/85">{p.excerpt}</p>
                 <p className="pt-1 text-xs font-medium text-ink/70">{p.author} · {p.published_at}</p>
             </div>
-        </article>
+        </Root>
     );
 }

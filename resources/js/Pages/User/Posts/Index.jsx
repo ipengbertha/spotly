@@ -98,6 +98,12 @@ export default function Index({ posts }) {
                             )}
 
                             <div className="mt-auto flex flex-wrap gap-2 pt-2 text-sm">
+                                {p.slug && (
+                                    <Link href={`/posts/${p.slug}`}
+                                        className="rounded-lg border border-ink/20 px-3 py-1.5 font-semibold text-ink hover:bg-ink/5">
+                                        Lihat
+                                    </Link>
+                                )}
                                 {p.can.edit && (
                                     <Link href={`/user/posts/${p.id}/edit`}
                                         className="rounded-lg border border-ink/20 px-3 py-1.5 font-semibold text-ink hover:bg-ink/5">

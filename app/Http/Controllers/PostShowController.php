@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Post;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class PostShowController extends Controller
+{
+    public function __invoke(Request $request, Post $post): Response
+    {
+        $viewer  = $request->user();
+        $isAdmin = $viewer?->role === 'admin';
+        $isOwner = $viewer !== null && $viewer->id === $post->user_id;
+
+        // Postingan yang sedang tayang boleh dibaca siapa saja.
+        // Selain itu (draft, review, ditolak, arsip, kedaluwarsa) hanya pemilik dan admin.
+        // Memakai 404 (bukan 403) supaya orang lain tidak tahu postingan itu ada.
+        abort_unless($post->isActive() || $isAdmin || $isOwner, 404);
+
+        $post->load(['user:id,name', 'category', 'extraCategories']);
+        $canSeePrivate = $isAdmin || $isOwner;
+
+        return Inertia::render('Posts/Show', [
+            'post' => [
+                'id'               => $post->id,
+                'title'            => $post->title,
+                'content'          => $post->content,
+                'image_url'        => $post->image ? '/storage/' . $post->image : null,
+                'categories'       => $post->categoryNames(),
+                'author'           => $post->user?->name,
+                'published_at'     => $post->published_at?->toIso8601String(),
+                'status'           => $post->displayStatus(),
+                'is_active'        => $post->isActive(),
+                'rejection_reason' => $canSeePrivate ? $post->rejection_reason : null,
+                'edit_url'         => ($isOwner && $post->isEditableByOwner())
+                    ? "/user/posts/{$post->id}/edit"
+                    : null,
+            ],
+            'viewer' => $isAdmin ? 'admin' : ($viewer ? 'user' : 'guest'),
+        ]);
+    }
+}
