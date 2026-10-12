@@ -40,6 +40,7 @@ class PublicController extends Controller
             ->get()
             ->map(fn (Post $p) => [
                 'id'           => $p->id,
+                'slug'         => $p->slug,
                 'title'        => $p->title,
                 'excerpt'      => Str::limit(strip_tags($p->content), 110),
                 'image_url'    => $p->image ? Storage::url($p->image) : null,

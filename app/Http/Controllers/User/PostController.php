@@ -23,6 +23,7 @@ class PostController extends Controller
         $posts = Auth::user()->posts()->with(['category', 'extraCategories'])->latest()->get()
             ->map(fn (Post $p) => [
                 'id'               => $p->id,
+                'slug'             => $p->slug,
                 'title'            => $p->title,
                 'status'           => $p->status,
                 'display_status'   => $p->displayStatus(),
