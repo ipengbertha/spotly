@@ -6,8 +6,6 @@ use App\Models\Category;
 use App\Models\Post;
 use App\Models\Setting;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class PublicController extends Controller
@@ -23,6 +21,7 @@ class PublicController extends Controller
 
         $posts = Post::active()
             ->with(['category:id,name', 'user:id,name', 'extraCategories'])
+            ->withLikes($request->user()?->id)
             ->when($q, fn ($query) => $query->where(function ($w) use ($q) {
                 $w->where('title', 'like', "%{$q}%")
                   ->orWhere('content', 'like', "%{$q}%");
@@ -38,18 +37,7 @@ class PublicController extends Controller
             ->orderByDesc('is_pinned')      // pinned selalu di atas
             ->orderByDesc('published_at')   // lalu yang terbaru
             ->get()
-            ->map(fn (Post $p) => [
-                'id'           => $p->id,
-                'slug'         => $p->slug,
-                'title'        => $p->title,
-                'excerpt'      => Str::limit(strip_tags($p->content), 110),
-                'image_url'    => $p->image ? Storage::url($p->image) : null,
-                'category'     => $p->category->name,
-                'categories'   => $p->categoryNames(),
-                'author'       => $p->user->name,
-                'is_pinned'    => $p->is_pinned,
-                'published_at' => $p->published_at->translatedFormat('d M Y'),
-            ]);
+            ->map(fn (Post $p) => $p->toCard());
 
         return Inertia::render('Home', [
             'posts'      => $posts,

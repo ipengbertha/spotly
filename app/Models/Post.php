@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Post extends Model
 {
@@ -36,7 +38,7 @@ class Post extends Model
     public function user()     { return $this->belongsTo(User::class); }
     public function category() { return $this->belongsTo(Category::class); }
 
-        // Kategori tambahan (maksimal 2), urut sesuai waktu dipilih
+    // Kategori tambahan (maksimal 2), urut sesuai waktu dipilih
     public function extraCategories()
     {
         return $this->belongsToMany(Category::class, 'category_post')->orderBy('category_post.id');
@@ -55,6 +57,48 @@ class Post extends Model
 
     public function comments() { return $this->hasMany(Comment::class); }
     public function likes()    { return $this->hasMany(Like::class); }
+
+    /**
+     * Tambahkan jumlah suka (likes_count) dan, kalau $userId diberikan,
+     * penanda "sudah disukai pengguna ini" (liked).
+     */
+    public function scopeWithLikes($query, ?int $userId = null)
+    {
+        $query->withCount('likes');
+
+        if ($userId) {
+            $query->withExists([
+                'likes as liked' => fn ($l) => $l->where('user_id', $userId),
+            ]);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Data kartu postingan (Mading, landing, halaman Disukai, profil).
+     * Relasi category, user, extraCategories harus sudah dimuat (with).
+     */
+    public function toCard(): array
+    {
+        return [
+            'id'            => $this->id,
+            'slug'          => $this->slug,
+            'title'         => $this->title,
+            'excerpt'       => Str::limit(strip_tags($this->content), 110),
+            'image_url'     => $this->image ? Storage::url($this->image) : null,
+            'category'      => $this->category->name,
+            'categories'    => $this->categoryNames(),
+            'author'        => $this->user->name,
+            'author_id'     => $this->user->id,
+            'author_avatar' => $this->user->avatar ? '/storage/' . $this->user->avatar : null,
+            'is_pinned'     => $this->is_pinned,
+            'published_at'  => $this->published_at->translatedFormat('d M Y'),
+            // dari scopeWithLikes; 0 / false kalau scope tidak dipakai
+            'likes_count'   => (int) ($this->likes_count ?? 0),
+            'liked'         => (bool) ($this->liked ?? false),
+        ];
+    }
 
     /**
      * Postingan AKTIF di mading: status published DAN sedang dalam masa tayang.
@@ -106,7 +150,7 @@ class Post extends Model
         ])->save();
     }
 
-        // Dipanggil admin saat approve. published_at otomatis sekarang.
+    // Dipanggil admin saat approve. published_at otomatis sekarang.
     public function markPublished(Carbon $expiredAt): void
     {
         $this->forceFill([
@@ -145,7 +189,7 @@ class Post extends Model
         $this->forceFill(['is_pinned' => $pinned])->save();
     }
 
-        // Arsip: diarsipkan admin, atau tayang tapi masa tayangnya sudah lewat (cermin scopeArchive)
+    // Arsip: diarsipkan admin, atau tayang tapi masa tayangnya sudah lewat (cermin scopeArchive)
     public function isArchived(): bool
     {
         return $this->status === self::ARCHIVED

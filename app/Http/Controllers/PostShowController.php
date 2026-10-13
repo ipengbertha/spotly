@@ -20,7 +20,7 @@ class PostShowController extends Controller
         // Memakai 404 (bukan 403) supaya orang lain tidak tahu postingan itu ada.
         abort_unless($post->isActive() || $isAdmin || $isOwner, 404);
 
-        $post->load(['user:id,name', 'category', 'extraCategories']);
+        $post->load(['user:id,name,avatar', 'category', 'extraCategories'])->loadCount('likes');
         $canSeePrivate = $isAdmin || $isOwner;
 
         return Inertia::render('Posts/Show', [
@@ -31,9 +31,16 @@ class PostShowController extends Controller
                 'image_url'        => $post->image ? '/storage/' . $post->image : null,
                 'categories'       => $post->categoryNames(),
                 'author'           => $post->user?->name,
+                'author_id'        => $post->user?->id,
+                'author_avatar'    => $post->user?->avatar ? '/storage/' . $post->user->avatar : null,
                 'published_at'     => $post->published_at?->toIso8601String(),
                 'status'           => $post->displayStatus(),
                 'is_active'        => $post->isActive(),
+                'likes_count'      => $post->likes_count,
+                'liked'            => $viewer !== null
+                    && $post->likes()->where('user_id', $viewer->id)->exists(),
+                // Hanya siswa yang bisa like, dan hanya untuk postingan yang sedang tayang
+                'can_like'         => $viewer?->role === 'user' && $post->isActive(),
                 'rejection_reason' => $canSeePrivate ? $post->rejection_reason : null,
                 'edit_url'         => ($isOwner && $post->isEditableByOwner())
                     ? "/user/posts/{$post->id}/edit"

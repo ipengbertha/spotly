@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import Icon from './Icon';
+import LikeButton from './LikeButton';
 
 export default function PostCard({ p, big = false }) {
     const h = big ? 'h-72' : 'h-52';
@@ -32,7 +33,10 @@ export default function PostCard({ p, big = false }) {
                 </div>
                 <h3 className={`font-bold leading-snug text-ink ${big ? 'text-xl' : 'text-lg'}`}>{p.title}</h3>
                 <p className="text-sm text-ink/85">{p.excerpt}</p>
-                <p className="pt-1 text-xs font-medium text-ink/70">{p.author} · {p.published_at}</p>
+                <div className="flex items-center justify-between gap-2 pt-1">
+                    <p className="text-xs font-medium text-ink/70">{p.author} · {p.published_at}</p>
+                    <LikeButton postId={p.id} count={p.likes_count} liked={p.liked} />
+                </div>
             </div>
         </Root>
     );

@@ -87,6 +87,7 @@ export default function UserLayout({ children }) {
     const isDash = u.pathname === '/user/dashboard';
     const isCreate = u.pathname === '/user/posts/create';
     const isMine = u.pathname.startsWith('/user/posts') && !isCreate;
+    const isLiked = u.pathname === '/user/disukai';
     const isNotif = u.pathname.startsWith('/notifications');
     const isSettings = u.pathname.startsWith('/settings');
     const unread = props.unreadNotifications ?? 0;
@@ -115,7 +116,7 @@ export default function UserLayout({ children }) {
         ['Konten', [
             { icon: 'plus',  label: 'Buat Postingan', href: '/user/posts/create', active: isCreate },
             { icon: 'doc',   label: 'Postingan Saya', href: '/user/posts', active: isMine },
-            { icon: 'heart', label: 'Disukai',        soon: true },
+            { icon: 'heart', label: 'Disukai',        href: '/user/disukai', active: isLiked },
         ]],
         ['Akun', [
             { icon: 'bell',  label: 'Notifikasi',     href: '/notifications', active: isNotif, badge: unread },

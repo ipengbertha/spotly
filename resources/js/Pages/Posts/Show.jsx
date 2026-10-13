@@ -4,6 +4,7 @@ import UserLayout from '../../Layouts/UserLayout';
 import PublicLayout from '../../Layouts/PublicLayout';
 import Footer from '../../Components/Landing/Footer';
 import StatusBadge from '../../Components/StatusBadge';
+import LikeButton from '../../Components/LikeButton';
 
 const formatDate = (iso) =>
     iso
@@ -81,6 +82,15 @@ export default function Show({ post, viewer }) {
                         <div className="mt-6 max-w-prose whitespace-pre-line wrap-break-word leading-relaxed text-ink/90">
                             {post.content}
                         </div>
+
+                        {post.is_active && (
+                            <div className="mt-8 flex items-center gap-3 border-t border-ink/10 pt-4">
+                                <LikeButton big postId={post.id} count={post.likes_count} liked={post.liked} />
+                                {viewer === 'guest' && (
+                                    <span className="text-sm text-ink/60">Masuk untuk menyukai postingan ini.</span>
+                                )}
+                            </div>
+                        )}
 
                         {post.edit_url && (
                             <div className="mt-8 border-t border-ink/10 pt-4">

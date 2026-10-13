@@ -7,8 +7,6 @@ use App\Models\Category;
 use App\Models\Post;
 use App\Models\Setting;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class FeedController extends Controller
@@ -26,7 +24,8 @@ class FeedController extends Controller
         $q = $request->query('q');
 
         $posts = Post::active()
-            ->with(['category:id,name', 'user:id,name', 'extraCategories'])
+            ->with(['category:id,name', 'user:id,name,avatar', 'extraCategories'])
+            ->withLikes($request->user()->id)
             // Tanpa pencarian: hanya 3 bulan terakhir (yang di-pin tetap tampil).
             // Dengan pencarian: semua postingan aktif bisa ditemukan.
             ->when(! $q, fn ($query) => $query->where(function ($w) {
@@ -51,18 +50,7 @@ class FeedController extends Controller
             ->orderByDesc('published_at')
             ->paginate(Setting::perPage())
             ->withQueryString()
-            ->through(fn (Post $p) => [
-                'id'           => $p->id,
-                'slug'         => $p->slug,
-                'title'        => $p->title,
-                'excerpt'      => Str::limit(strip_tags($p->content), 110),
-                'image_url'    => $p->image ? Storage::url($p->image) : null,
-                'category'     => $p->category->name,
-                'categories'   => $p->categoryNames(),
-                'author'       => $p->user->name,
-                'is_pinned'    => $p->is_pinned,
-                'published_at' => $p->published_at->translatedFormat('d M Y'),
-            ]);
+            ->through(fn (Post $p) => $p->toCard());
 
         return Inertia::render('User/Beranda', [
             'posts'      => $posts,
