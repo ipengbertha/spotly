@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 // Teks peringatan disimpan di satu tempat supaya mudah diubah
 export const SUBMIT_WARNING =
     'Setelah dikirim, postingan tidak bisa diedit selama menunggu review Admin. ' +
@@ -7,6 +9,13 @@ export const SUBMIT_WARNING =
 export default function ConfirmDialog({
     open, title, message, confirmLabel = 'Ya, lanjutkan', onConfirm, onCancel,
 }) {
+    useEffect(() => {
+        if (!open) return;
+        const onKey = (e) => e.key === 'Escape' && onCancel();
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [open, onCancel]);
+
     if (!open) return null;
 
     return (
