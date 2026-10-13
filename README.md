@@ -1,59 +1,139 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Spotly
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Spotly adalah aplikasi **mading digital sekolah**. Siswa menulis postingan (pengumuman, prestasi, info lomba, karya, opini), admin meninjau dan menyetujuinya, lalu postingan tayang di Mading selama masa tayang yang ditentukan.
 
-## About Laravel
+Dibuat sebagai proyek UKK dengan Laravel dan React.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Fitur
+### Siswa
+- Beranda **Mading** dengan pencarian, filter kategori, dan pagination.
+- Halaman **detail postingan** (`/posts/{slug}`) untuk membaca isi lengkap. Postingan yang sedang tayang juga bisa dibaca tamu yang belum login.
+- Buat postingan dengan **1 kategori utama + maksimal 2 kategori tambahan** dan gambar (JPG/PNG/WEBP, maks. 2 MB).
+- Simpan sebagai **draft**, lalu **kirim untuk review**.
+- Halaman **Kiriman Saya** dengan status: draft, menunggu review, tayang, ditolak, dan arsip.
+- Postingan yang ditolak menampilkan **alasan penolakan** dan bisa diperbaiki lalu **dikirim ulang**.
+- **Notifikasi** saat postingan disetujui atau ditolak, dengan preferensi yang bisa diatur.
+- Pengaturan profil: data diri, foto profil, dan ganti password.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Admin
+- **Antrean Review**: lihat, setujui (dengan tanggal kedaluwarsa), atau tolak (dengan alasan wajib).
+- **Postingan Tayang**: atur masa tayang, **pin** postingan (maksimal 3 pin aktif), arsipkan, atau hapus.
+- **Arsip**: postingan yang diarsipkan admin atau yang masa tayangnya sudah habis; bisa ditayangkan lagi atau dihapus.
+- **Kategori**: tambah, ubah nama, dan hapus. Postingan dari kategori yang dihapus dipindahkan ke kategori pengganti.
+- **Pengguna**: nonaktifkan dan aktifkan kembali akun siswa.
+- **Pengaturan Mading**, misalnya jumlah postingan per halaman.
+- Pencarian dan pagination di setiap halaman daftar.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Aturan penting
+- Postingan baru selalu berstatus draft; status tidak bisa ditentukan dari form.
+- Postingan yang melewati `expired_at` otomatis hilang dari Mading dan tampil di Arsip sebagai "Masa tayang habis". Pin yang kedaluwarsa tidak memakai slot.
+- Postingan lebih dari tiga bulan hanya muncul di Mading lewat pencarian.
+- Akun yang dinonaktifkan tidak bisa login dan sesi aktifnya diakhiri.
+- Draft, menunggu review, ditolak, arsip, dan kedaluwarsa hanya bisa dibuka oleh penulisnya dan admin. Orang lain mendapat halaman 404.
 
-## Learning Laravel
+## Teknologi
+- PHP 8.2+, Laravel
+- React dengan Inertia.js, dibangun dengan Vite
+- MySQL/MariaDB (XAMPP)
+- Pengujian dengan PHPUnit (`php artisan test`)
+Saat ini terdapat 115 tes yang mencakup hak akses admin, kategori, review, pin dan arsip, pencarian, kategori tambahan, halaman detail postingan, notifikasi, pengaturan akun, dan manajemen pengguna.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Instalasi
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Prasyarat: PHP 8.2+, Composer, Node.js, dan MySQL/MariaDB (XAMPP).
 
-## Laravel Sponsors
+```bash
+git clone <url-repositori>
+cd spotly
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+composer install
+npm install
 
-### Premium Partners
+cp .env.example .env
+php artisan key:generate
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Buat database kosong bernama `spotly` (lewat phpMyAdmin), lalu sesuaikan `.env`:
 
-## Contributing
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=spotly
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Lanjutkan:
 
-## Code of Conduct
+```bash
+php artisan migrate --seed
+php artisan storage:link
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+`storage:link` diperlukan agar gambar postingan dan foto profil bisa tampil.
 
-## Security Vulnerabilities
+## Menjalankan
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Buka dua terminal:
 
-## License
+```bash
+# Terminal 1: server Laravel
+php artisan serve
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# Terminal 2: aset front-end
+npm run dev
+```
+
+Buka http://127.0.0.1:8000.
+
+Untuk build produksi: `npm run build`.
+
+## Akun demo
+
+Dibuat oleh `UserSeeder`. Password semua akun demo: `password`.
+
+| Peran | Email | Nama |
+|-------|-------|------|
+| Admin | `admin@spotly.test` | Admin Spotly |
+| Siswa | `ivana@spotly.test` | Ivana |
+| Siswa | `budi@spotly.test` | Budi |
+| Siswa | `citra@spotly.test` | Citra |
+| Siswa | `dimas@spotly.test` | Dimas |
+| Siswa | `elsa@spotly.test` | Elsa |
+
+Akun ini hanya untuk demo dan pengembangan. Jangan dipakai di server sungguhan.
+
+## Data contoh
+
+`PostSeeder` membuat postingan realistis dengan **tanggal relatif terhadap hari ini**: tayang, ber-pin, menunggu review, ditolak, draft, kedaluwarsa, dan diarsipkan. Sebelum presentasi, atur ulang data supaya masa tayangnya segar:
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+Perintah ini **menghapus seluruh data** di database.
+
+## Pengujian
+
+```bash
+php artisan test
+```
+
+Saat ini terdapat 107 tes yang mencakup hak akses admin, kategori, review, pin dan arsip, pencarian, kategori tambahan, notifikasi, pengaturan akun, dan manajemen pengguna.
+
+## Struktur singkat
+
+```
+app/Http/Controllers/Admin/   controller sisi admin
+app/Http/Controllers/User/    controller sisi siswa
+app/Http/Requests/            validasi form (PostRequest, dll.)
+database/seeders/             data awal dan data contoh
+resources/js/Pages/           halaman React (Admin, User, Auth)
+resources/js/Layouts/         AdminLayout dan layout lainnya
+tests/Feature/                tes fitur
+```
+
+## Lisensi
+
+Proyek ini dibuat untuk keperluan pembelajaran. Laravel dilisensikan di bawah [MIT](https://opensource.org/licenses/MIT).
