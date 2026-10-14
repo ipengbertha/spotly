@@ -4,6 +4,7 @@ const STYLES = {
     published: ['Tayang',          'bg-emerald-100 text-emerald-700'],
     rejected:  ['Ditolak',         'bg-brand/10 text-brand'],
     archived:  ['Arsip',           'bg-amber-100 text-amber-800'],
+    suspended: ['Ditangguhkan',    'bg-red-100 text-red-700'],
 };
 
 export default function StatusBadge({ status }) {

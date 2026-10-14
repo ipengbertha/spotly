@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use App\Models\Category;
+use App\Models\Report;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -36,6 +37,10 @@ class HandleInertiaRequests extends Middleware
             // Jumlah notifikasi belum dibaca (untuk badge lonceng)
             'unreadNotifications' => fn () => $user
                 ? $user->unreadNotifications()->count()
+                : 0,
+            // Jumlah postingan yang laporannya menunggu keputusan (badge menu Laporan admin)
+            'pendingReports' => fn () => $user?->role === 'admin'
+                ? Report::pending()->distinct()->count('post_id')
                 : 0,
         ];
     }

@@ -10,6 +10,10 @@ const DOT = {
     approved:  'bg-grape',
     rejected:  'bg-brand',
     submitted: 'bg-peach',
+    suspended: 'bg-brand',
+    report_submitted: 'bg-peach',
+    report_dismissed: 'bg-grape',
+    report_upheld:    'bg-grape',
 };
 
 export default function Index({ notifications, isAdmin }) {

@@ -9,6 +9,7 @@ const TABS = [
     ['submitted', 'Menunggu review'],
     ['published', 'Tayang'],
     ['rejected', 'Ditolak'],
+    ['suspended', 'Ditangguhkan'],
     ['draft', 'Draft'],
     ['archived', 'Arsip'],
 ];
@@ -94,6 +95,16 @@ export default function Index({ posts }) {
                                 <div className="rounded-lg bg-brand/10 p-3 text-sm text-brand">
                                     <p className="font-semibold">Alasan penolakan</p>
                                     <p className="mt-0.5 text-ink/80">{p.rejection_reason}</p>
+                                </div>
+                            )}
+
+                            {p.status === 'suspended' && (
+                                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                                    <p className="font-semibold">Postingan ini ditangguhkan</p>
+                                    {p.suspension_reason && <p className="mt-0.5 text-ink/80">{p.suspension_reason}</p>}
+                                    <p className="mt-1 text-xs text-ink/60">
+                                        Tidak tampil di mading dan tidak bisa diedit atau dikirim ulang.
+                                    </p>
                                 </div>
                             )}
 

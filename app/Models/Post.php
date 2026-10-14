@@ -18,6 +18,7 @@ class Post extends Model
     public const PUBLISHED = 'published';
     public const REJECTED = 'rejected';
     public const ARCHIVED = 'archived';
+    public const SUSPENDED = 'suspended';
     public const MAX_PINNED = 3;
 
     // status, is_pinned, dll. sengaja TIDAK di-fillable:
@@ -57,6 +58,7 @@ class Post extends Model
 
     public function comments() { return $this->hasMany(Comment::class); }
     public function likes()    { return $this->hasMany(Like::class); }
+    public function reports()  { return $this->hasMany(Report::class); }
 
     /**
      * Tambahkan jumlah suka (likes_count) dan, kalau $userId diberikan,
@@ -202,6 +204,17 @@ class Post extends Model
     public function markArchived(): void
     {
         $this->forceFill(['status' => self::ARCHIVED, 'is_pinned' => false])->save();
+    }
+
+    // Ditangguhkan admin setelah laporan: tidak tampil, tidak bisa diedit atau dikirim ulang penulis.
+    // Pin dilepas supaya slot pin kosong lagi.
+    public function markSuspended(string $reason): void
+    {
+        $this->forceFill([
+            'status'            => self::SUSPENDED,
+            'suspension_reason' => $reason,
+            'is_pinned'         => false,
+        ])->save();
     }
 
     public function displayStatus(): string

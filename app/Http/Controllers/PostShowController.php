@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use App\Models\Report;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,6 +23,9 @@ class PostShowController extends Controller
 
         $post->load(['user:id,name,avatar', 'category', 'extraCategories'])->loadCount('likes');
         $canSeePrivate = $isAdmin || $isOwner;
+        $isStudent     = $viewer?->role === 'user';
+        $reported      = $viewer !== null
+            && $post->reports()->where('user_id', $viewer->id)->exists();
 
         return Inertia::render('Posts/Show', [
             'post' => [
@@ -42,6 +46,11 @@ class PostShowController extends Controller
                 // Hanya siswa yang bisa like, dan hanya untuk postingan yang sedang tayang
                 'can_like'         => $viewer?->role === 'user' && $post->isActive(),
                 'rejection_reason' => $canSeePrivate ? $post->rejection_reason : null,
+                'suspension_reason' => $canSeePrivate ? $post->suspension_reason : null,
+                // Siswa bisa melaporkan postingan tayang milik orang lain, sekali saja
+                'can_report'       => $isStudent && ! $isOwner && $post->isActive() && ! $reported,
+                'reported'         => $reported,
+                'report_reasons'   => Report::reasonOptions(),
                 'edit_url'         => ($isOwner && $post->isEditableByOwner())
                     ? "/user/posts/{$post->id}/edit"
                     : null,

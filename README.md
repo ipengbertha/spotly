@@ -23,6 +23,8 @@ Dibuat sebagai proyek UKK dengan Laravel dan React.
 - **Pengguna**: nonaktifkan dan aktifkan kembali akun siswa.
 - **Pengaturan Mading**, misalnya jumlah postingan per halaman.
 - Pencarian dan pagination di setiap halaman daftar.
+- **Like**: siswa bisa menyukai postingan yang sedang tayang (satu suka per siswa per postingan) dan melihat daftarnya di halaman **Disukai**. Tamu dan admin hanya melihat jumlah suka.
+- **Profil penulis** (`/profil/{id}`): foto, bio, jumlah postingan tayang dan suka yang diterima, serta daftar postingan penulis. Nama penulis di kartu bisa diklik.
 
 ### Aturan penting
 - Postingan baru selalu berstatus draft; status tidak bisa ditentukan dari form.

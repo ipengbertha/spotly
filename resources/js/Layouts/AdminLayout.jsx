@@ -6,6 +6,7 @@ const ICONS = {
     dash:    'M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z',
     home:    'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',
     doc:     'M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6',
+    flag:    'M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7',
     clock:   'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2',
     archive: 'M3 4h18v4H3zM5 8v12h14V8M10 12h4',
     tag:     'M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8zM7.5 7.5h.01',
@@ -86,6 +87,7 @@ export default function AdminLayout({ title, children }) {
     const isMading = onMading;
     const onUsers = u.pathname.startsWith('/admin/users');
     const onReviews = u.pathname.startsWith('/admin/reviews');
+    const onReports = u.pathname.startsWith('/admin/reports');
     const onArchive = u.pathname.startsWith('/admin/archive');
     const onCategories = u.pathname.startsWith('/admin/categories');
     const onPosts = u.pathname.startsWith('/admin/posts');
@@ -94,6 +96,7 @@ export default function AdminLayout({ title, children }) {
         : onArchive ? '/admin/archive'
         : onCategories ? '/admin/categories'
         : onPosts ? '/admin/posts'
+        : onReports ? '/admin/reports'
         : '/admin/reviews';
     const [q, setQ] = useState(u.pathname === searchPath ? (u.searchParams.get('q') ?? '') : '');
 
@@ -105,12 +108,14 @@ export default function AdminLayout({ title, children }) {
     const isDash = url.startsWith('/admin/dashboard');
     const isReview = url.startsWith('/admin/reviews');
     const isPosts = url.startsWith('/admin/posts');
+    const isReports = url.startsWith('/admin/reports');
     const isCategories = url.startsWith('/admin/categories');
     const isUsers = url.startsWith('/admin/users');
     const isArchive = url.startsWith('/admin/archive');
     const isNotif = u.pathname.startsWith('/notifications');
         const isSettings = u.pathname.startsWith('/settings');
     const unread = props.unreadNotifications ?? 0;
+    const pendingReports = props.pendingReports ?? 0;
     const initial = (user?.name ?? '?').trim().charAt(0).toUpperCase();
     const today = new Date().toLocaleDateString('id-ID', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -125,6 +130,7 @@ export default function AdminLayout({ title, children }) {
         ['Konten', [
             { icon: 'doc',     label: 'Postingan', href: '/admin/posts', active: isPosts },
             { icon: 'clock',   label: 'Review',    href: '/admin/reviews', active: isReview },
+            { icon: 'flag',    label: 'Laporan',   href: '/admin/reports', active: isReports, badge: pendingReports },
             { icon: 'archive', label: 'Arsip',     href: '/admin/archive', active: isArchive },
         ]],
         ['Manajemen', [

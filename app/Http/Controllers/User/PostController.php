@@ -28,6 +28,7 @@ class PostController extends Controller
                 'status'           => $p->status,
                 'display_status'   => $p->displayStatus(),
                 'rejection_reason' => $p->rejection_reason,
+                'suspension_reason' => $p->suspension_reason,
                 'category'         => $p->category->name,
                 'categories'       => $p->categoryNames(),
                 'image_url'        => $p->image ? '/storage/' . $p->image : null,

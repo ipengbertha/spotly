@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\ArchiveController as AdminArchiveController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PostController as AdminPostController;
+use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\PostShowController;
@@ -34,6 +36,12 @@ Route::get('/profil/{user}', [ProfileController::class, 'show'])->name('profiles
 Route::post('/posts/{post}/like', [LikeController::class, 'toggle'])
     ->middleware(['auth', EnsureUserIsActive::class, 'role:user'])
     ->name('posts.like');
+
+// Laporan: siswa melaporkan postingan tayang, lalu melihat hasilnya. Admin dan tamu ditolak.
+Route::middleware(['auth', EnsureUserIsActive::class, 'role:user'])->group(function () {
+    Route::post('/posts/{post}/report', [ReportController::class, 'store'])->name('posts.report');
+    Route::get('/laporan/{report}', [ReportController::class, 'show'])->name('reports.show');
+});
 
 // Hanya untuk tamu (yang belum login)
 Route::middleware('guest')->group(function () {
@@ -82,6 +90,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index');
     Route::post('/reviews/{post}/approve', [ReviewController::class, 'approve'])->name('reviews.approve');
     Route::post('/reviews/{post}/reject', [ReviewController::class, 'reject'])->name('reviews.reject');
+
+    Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
+    Route::post('/reports/posts/{post}/suspend', [AdminReportController::class, 'suspend'])->name('reports.suspend');
+    Route::post('/reports/posts/{post}/dismiss', [AdminReportController::class, 'dismiss'])->name('reports.dismiss');
 
     Route::get('/posts', [AdminPostController::class, 'index'])->name('posts.index');
     Route::patch('/posts/{post}/expiry', [AdminPostController::class, 'updateExpiry'])->name('posts.expiry');

@@ -59,7 +59,12 @@ class User extends Authenticatable
         ];
     }
 
-        // Preferensi notifikasi: kalau belum pernah diatur, semuanya dianggap aktif
+    public function reports()
+    {
+        return $this->hasMany(Report::class);
+    }
+
+    // Preferensi notifikasi: kalau belum pernah diatur, semuanya dianggap aktif
     public function wantsNotification(string $key): bool
     {
         return (bool) (($this->notification_preferences ?? [])[$key] ?? true);
