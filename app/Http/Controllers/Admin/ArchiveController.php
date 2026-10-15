@@ -30,7 +30,8 @@ class ArchiveController extends Controller
                     'title'           => $p->title,
                     'author'          => $p->user?->name,
                     'category'        => $p->category?->name,
-                    'reason'          => $p->status === Post::ARCHIVED ? 'Diarsipkan admin' : 'Masa tayang habis',
+                    // Masa tayang lewat = "Masa tayang habis", baik sudah diarsipkan otomatis maupun belum
+'reason'          => $p->expired_at && $p->expired_at->lte(now()) ? 'Masa tayang habis' : 'Diarsipkan admin',
                     'published_label' => $p->published_at?->translatedFormat('d M Y') ?? '-',
                     'expired_label'   => $p->expired_at?->translatedFormat('d M Y') ?? '-',
                 ]),

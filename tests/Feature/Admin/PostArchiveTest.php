@@ -187,4 +187,36 @@ class PostArchiveTest extends TestCase
             ->get('/admin/archive?q=Judul a')
             ->assertInertia(fn ($page) => $page->has('posts.data', 1));
     }
+
+        // Kolom "Alasan" di halaman Arsip
+    public function test_reason_is_admin_when_archived_manually_before_expiry(): void
+    {
+        $this->published('a')->markArchived(); // masa tayang masih 5 hari lagi
+
+        $this->actingAs($this->admin)
+            ->get('/admin/archive')
+            ->assertInertia(fn ($page) => $page->where('posts.data.0.reason', 'Diarsipkan admin'));
+    }
+
+    public function test_reason_is_expired_when_archived_by_command(): void
+    {
+        $post = $this->published('a');
+        $post->forceFill(['expired_at' => now()->subHour()])->save();
+
+        $this->artisan('posts:archive-expired');
+
+        $this->actingAs($this->admin)
+            ->get('/admin/archive')
+            ->assertInertia(fn ($page) => $page->where('posts.data.0.reason', 'Masa tayang habis'));
+    }
+
+    public function test_reason_is_expired_before_the_scheduler_has_run(): void
+    {
+        $post = $this->published('a');
+        $post->forceFill(['expired_at' => now()->subHour()])->save(); // status masih published
+
+        $this->actingAs($this->admin)
+            ->get('/admin/archive')
+            ->assertInertia(fn ($page) => $page->where('posts.data.0.reason', 'Masa tayang habis'));
+    }
 }

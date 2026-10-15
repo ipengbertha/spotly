@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import Logo from '../Components/Logo';
 import useLiveSearch, { madingSearchParams } from '../hooks/useLiveSearch';
+import Tip from '../Components/RailTip';
 
 const ICONS = {
     dash:    'M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z',
@@ -27,15 +28,6 @@ function Ico({ name, className = 'h-5 w-5' }) {
             strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
             <path d={ICONS[name]} />
         </svg>
-    );
-}
-
-// Tooltip: hanya muncul di mode rail (layar lebar)
-function Tip({ children }) {
-    return (
-        <span className="pointer-events-none absolute left-full z-50 ml-3 hidden whitespace-nowrap rounded-lg bg-ink px-2.5 py-1 text-xs font-semibold text-white opacity-0 shadow-lg ring-1 ring-white/10 transition group-hover:opacity-100 lg:block">
-            {children}
-        </span>
     );
 }
 
@@ -183,7 +175,7 @@ export default function AdminLayout({ title, children }) {
 
                 {/* Menu utama */}
                 <nav onClick={() => setOpen(false)}
-                    className="flex min-h-0 flex-1 flex-col lg:items-center lg:justify-center lg:rounded-full lg:bg-ink lg:py-3 lg:short:py-2 lg:shadow-md">
+                    className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:items-center lg:scrollbar-none lg:rounded-full lg:bg-ink lg:py-3 lg:short:py-2 lg:shadow-md lg:[&>*:first-child]:mt-auto lg:[&>*:last-child]:mb-auto">
                     {groups.map(([label, items], i) => (
                         <div key={label} className="flex flex-col gap-0.5 lg:items-center">
                             {i > 0 && <div className="hidden h-px w-6 bg-white/20 lg:my-1.5 lg:short:my-1 lg:block" />}
