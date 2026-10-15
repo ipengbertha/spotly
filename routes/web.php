@@ -44,6 +44,7 @@ Route::post('/posts/{post}/like', [LikeController::class, 'toggle'])
 // Batas kirim 5 per menit dicek di CommentController@store.
 Route::middleware(['auth', EnsureUserIsActive::class, 'role:user'])->group(function () {
     Route::post('/posts/{post}/comments', [CommentController::class, 'store'])->name('posts.comments.store');
+    Route::patch('/posts/{post}/comments-setting', [CommentController::class, 'updateSetting'])->name('posts.comments.setting');
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
 });
 

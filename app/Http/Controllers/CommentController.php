@@ -21,6 +21,10 @@ class CommentController extends Controller
         // Hanya postingan yang sedang tayang. 404 supaya postingan lain tidak ketahuan ada.
         abort_unless($post->isActive(), 404);
 
+        // Penulis mematikan komentar: tidak ada yang bisa menulis. Dicek sebelum batas kirim
+        // supaya permintaan yang ditolak tidak ikut menghabiskan jatah 5 per menit.
+        abort_unless($post->comments_enabled, 403, 'Penulis mematikan komentar di postingan ini.');
+
         // Batas kirim dicek lewat controller (bukan middleware throttle) supaya pesannya
         // tampil rapi di bawah kotak komentar, bukan halaman error 429.
         $key = "comment:{$user->id}";
@@ -53,6 +57,21 @@ class CommentController extends Controller
         if ($author && $author->id !== $user->id && $author->wantsNotification('comment_received')) {
             $author->notify(new CommentReceived($post, $comment->setRelation('user', $user)));
         }
+
+        return back();
+    }
+
+    // Penulis postingan mematikan atau menyalakan komentar. Route sudah dibatasi untuk siswa (role:user).
+    // Komentar yang sudah ada tetap tampil dan tetap bisa dihapus; hanya komentar baru yang ditutup.
+    public function updateSetting(Request $request, Post $post)
+    {
+        // Postingan yang tidak tayang menjawab 404 untuk semua aksi komentar
+        abort_unless($post->isActive(), 404);
+        abort_unless($post->user_id === $request->user()->id, 403);
+
+        $data = $request->validate(['enabled' => ['required', 'boolean']]);
+
+        $post->setCommentsEnabled((bool) $data['enabled']);
 
         return back();
     }

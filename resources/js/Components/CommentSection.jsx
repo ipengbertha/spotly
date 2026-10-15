@@ -44,6 +44,39 @@ function CommentForm({ postId }) {
     );
 }
 
+// Saklar untuk penulis postingan: mematikan / menyalakan komentar baru.
+function CommentsSwitch({ post }) {
+    const [busy, setBusy] = useState(false);
+    const on = post.comments_enabled;
+
+    const toggle = () => {
+        if (busy) return;
+        router.patch(`/posts/${post.id}/comments-setting`, { enabled: !on }, {
+            preserveScroll: true,
+            onStart: () => setBusy(true),
+            onFinish: () => setBusy(false),
+        });
+    };
+
+    return (
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-cream/60 px-4 py-3 ring-1 ring-ink/5">
+            <div>
+                <p className="text-sm font-semibold text-ink">Komentar di postingan ini</p>
+                <p className="text-xs text-ink/60">
+                    {on
+                        ? 'Aktif. Siswa bisa menulis komentar.'
+                        : 'Dimatikan. Komentar lama tetap tampil, tapi tidak ada yang bisa menambah komentar baru.'}
+                </p>
+            </div>
+            <button type="button" role="switch" aria-checked={on} onClick={toggle} disabled={busy}
+                aria-label={on ? 'Matikan komentar' : 'Nyalakan komentar'}
+                className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-60 ${on ? 'bg-brand' : 'bg-ink/25'}`}>
+                <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${on ? 'left-5.5' : 'left-0.5'}`} />
+            </button>
+        </div>
+    );
+}
+
 // Bagian komentar di halaman detail postingan: form (siswa) + daftar komentar, terbaru di atas.
 // viewer: 'guest' | 'user' | 'admin'
 export default function CommentSection({ post, viewer }) {
@@ -62,10 +95,18 @@ export default function CommentSection({ post, viewer }) {
                 Komentar ({post.comments_count})
             </h2>
 
+            {post.can_toggle_comments && <CommentsSwitch post={post} />}
+
             <div className="mt-4">
                 {post.can_comment && <CommentForm postId={post.id} />}
 
-                {viewer === 'guest' && (
+                {!post.comments_enabled && viewer !== 'admin' && (
+                    <p className="rounded-2xl bg-grape/10 px-4 py-3 text-sm text-ink ring-1 ring-grape/20">
+                        Penulis mematikan komentar di postingan ini.
+                    </p>
+                )}
+
+                {viewer === 'guest' && post.comments_enabled && (
                     <p className="rounded-2xl bg-grape/10 px-4 py-3 text-sm text-ink ring-1 ring-grape/20">
                         <Link href="/login" className="font-semibold text-grape hover:underline">Masuk</Link>
                         {' '}untuk menulis komentar.
@@ -75,12 +116,15 @@ export default function CommentSection({ post, viewer }) {
                 {viewer === 'admin' && (
                     <p className="rounded-2xl bg-grape/10 px-4 py-3 text-sm text-ink ring-1 ring-grape/20">
                         Admin bisa membaca dan menghapus komentar, tapi tidak menulis komentar.
+                        {!post.comments_enabled && ' Penulis sedang mematikan komentar di postingan ini.'}
                     </p>
                 )}
             </div>
 
             {post.comments.length === 0 ? (
-                <p className="mt-6 text-center text-sm text-ink/60">Belum ada komentar. Jadilah yang pertama!</p>
+                <p className="mt-6 text-center text-sm text-ink/60">
+                    {post.comments_enabled ? 'Belum ada komentar. Jadilah yang pertama!' : 'Belum ada komentar.'}
+                </p>
             ) : (
                 <ul className="mt-6 divide-y divide-ink/5">
                     {post.comments.map((c) => (

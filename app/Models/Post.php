@@ -33,6 +33,7 @@ class Post extends Model
             'published_at' => 'datetime',
             'expired_at'   => 'datetime',
             'is_pinned'    => 'boolean',
+            'comments_enabled' => 'boolean',
         ];
     }
 
@@ -185,6 +186,12 @@ class Post extends Model
     public function setExpiry(Carbon $expiredAt): void
     {
         $this->forceFill(['expired_at' => $expiredAt])->save();
+    }
+
+    // Penulis mematikan / menyalakan komentar. forceFill karena kolomnya sengaja tidak di $fillable.
+    public function setCommentsEnabled(bool $enabled): void
+    {
+        $this->forceFill(['comments_enabled' => $enabled])->save();
     }
 
     public function setPinned(bool $pinned): void
