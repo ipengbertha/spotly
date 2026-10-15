@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ArchiveController as AdminArchiveController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\CommentController as AdminCommentController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\PostController as AdminPostController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\CommentController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicController;
@@ -36,6 +38,14 @@ Route::get('/profil/{user}', [ProfileController::class, 'show'])->name('profiles
 Route::post('/posts/{post}/like', [LikeController::class, 'toggle'])
     ->middleware(['auth', EnsureUserIsActive::class, 'role:user'])
     ->name('posts.like');
+
+// Komentar: hanya siswa yang menulis dan menghapus komentarnya sendiri.
+// Tamu diarahkan ke login, admin mendapat 403 (admin menghapus lewat /admin/comments).
+// Batas kirim 5 per menit dicek di CommentController@store.
+Route::middleware(['auth', EnsureUserIsActive::class, 'role:user'])->group(function () {
+    Route::post('/posts/{post}/comments', [CommentController::class, 'store'])->name('posts.comments.store');
+    Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
+});
 
 // Laporan: siswa melaporkan postingan tayang, lalu melihat hasilnya. Admin dan tamu ditolak.
 Route::middleware(['auth', EnsureUserIsActive::class, 'role:user'])->group(function () {
@@ -94,6 +104,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
     Route::post('/reports/posts/{post}/suspend', [AdminReportController::class, 'suspend'])->name('reports.suspend');
     Route::post('/reports/posts/{post}/dismiss', [AdminReportController::class, 'dismiss'])->name('reports.dismiss');
+
+    Route::get('/comments', [AdminCommentController::class, 'index'])->name('comments.index');
+    Route::delete('/comments/{comment}', [AdminCommentController::class, 'destroy'])->name('comments.destroy');
 
     Route::get('/posts', [AdminPostController::class, 'index'])->name('posts.index');
     Route::patch('/posts/{post}/expiry', [AdminPostController::class, 'updateExpiry'])->name('posts.expiry');

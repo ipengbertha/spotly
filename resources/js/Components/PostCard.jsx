@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import Icon from './Icon';
 import LikeButton from './LikeButton';
+import CommentIcon from './CommentIcon';
 
 export default function PostCard({ p, big = false }) {
     const h = big ? 'h-72' : 'h-52';
@@ -35,7 +36,15 @@ export default function PostCard({ p, big = false }) {
                 <p className="text-sm text-ink/85">{p.excerpt}</p>
                 <div className="flex items-center justify-between gap-2 pt-1">
                     <p className="text-xs font-medium text-ink/70">{p.author} · {p.published_at}</p>
-                    <LikeButton postId={p.id} count={p.likes_count} liked={p.liked} />
+                    <div className="flex items-center">
+                        {/* Jumlah komentar: hanya angka, isinya ada di halaman detail */}
+                        <span title="Jumlah komentar" aria-label={`${p.comments_count ?? 0} komentar`}
+                            className="inline-flex items-center gap-1.5 px-2 py-1 text-sm font-semibold text-ink/60">
+                            <CommentIcon className="h-5 w-5" />
+                            {p.comments_count ?? 0}
+                        </span>
+                        <LikeButton postId={p.id} count={p.likes_count} liked={p.liked} />
+                    </div>
                 </div>
             </div>
         </Root>

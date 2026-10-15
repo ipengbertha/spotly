@@ -3,10 +3,12 @@
 namespace Database\Seeders;
 
 use App\Models\Category;
+use App\Models\Comment;
 use App\Models\Like;
 use App\Models\Post;
 use App\Models\Report;
 use App\Models\User;
+use App\Notifications\CommentReceived;
 use App\Notifications\PostSuspended;
 use App\Notifications\ReportReviewed;
 use App\Notifications\ReportSubmitted;
@@ -15,7 +17,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
- * Data demo untuk fitur interaksi: bio siswa, like, laporan, dan postingan ditangguhkan.
+ * Data demo untuk fitur interaksi: bio siswa, like, komentar, laporan, dan postingan ditangguhkan.
  * Dijalankan SETELAH PostSeeder. Semua tanggal relatif terhadap hari ini.
  */
 class DemoActivitySeeder extends Seeder
@@ -32,6 +34,7 @@ class DemoActivitySeeder extends Seeder
 
         $this->bios($students);
         $this->likes($students);
+        $this->comments($students);
         $this->suspendedPost($admin, $students);
         $this->reports($admin, $students);
     }
@@ -74,6 +77,50 @@ class DemoActivitySeeder extends Seeder
 
                 Like::firstOrCreate(['post_id' => $post->id, 'user_id' => $liker->id]);
                 $given++;
+            }
+        });
+    }
+
+    // Beberapa komentar pada postingan tayang. Penulis komentar selalu orang lain, bukan pemilik
+    // postingan, dan pemilik mendapat notifikasi seperti aslinya. Dijalankan ulang tidak menggandakan.
+    private function comments(Collection $students): void
+    {
+        if (Comment::exists()) {
+            return;
+        }
+
+        $texts = [
+            'Terima kasih infonya, sangat membantu!',
+            'Wah, ini menarik. Aku pasti ikut.',
+            'Apakah ada yang tahu detail waktunya?',
+            'Semoga acaranya berjalan lancar ya.',
+            'Setuju banget, semoga segera ada tindak lanjutnya.',
+            'Keren! Ditunggu informasi selanjutnya.',
+            'Boleh minta info kontak panitianya?',
+            'Mantap, jangan sampai terlewat.',
+        ];
+        $pattern = [3, 2, 1, 0, 2, 1, 0, 2];
+        $n       = 0;
+
+        Post::active()->with('user')->orderBy('id')->get()->each(function (Post $post, int $i) use ($students, $texts, $pattern, &$n) {
+            $want       = $pattern[$i % count($pattern)];
+            $commenters = $students->where('id', '!=', $post->user_id)->values();
+
+            for ($k = 0; $k < $want && $commenters->isNotEmpty(); $k++) {
+                $commenter = $commenters[($i + $k) % $commenters->count()];
+                $at        = now()->subHours($i + ($want - $k) * 2)->subMinutes($k * 7);
+
+                $comment = Comment::forceCreate([
+                    'post_id'    => $post->id,
+                    'user_id'    => $commenter->id,
+                    'content'    => $texts[$n++ % count($texts)],
+                    'created_at' => $at,
+                    'updated_at' => $at,
+                ]);
+
+                if ($post->user?->wantsNotification('comment_received')) {
+                    $post->user->notify(new CommentReceived($post, $comment->setRelation('user', $commenter)));
+                }
             }
         });
     }

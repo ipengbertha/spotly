@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Comment;
 use App\Models\Post;
 use App\Models\Report;
 use Illuminate\Http\Request;
@@ -27,6 +28,25 @@ class PostShowController extends Controller
         $reported      = $viewer !== null
             && $post->reports()->where('user_id', $viewer->id)->exists();
 
+        // Komentar hanya dibuka untuk postingan yang sedang tayang, terbaru di atas.
+        // Hapus: siswa hanya miliknya sendiri, admin semuanya (lewat route masing-masing).
+        $comments = $post->isActive()
+            ? $post->comments()->with('user:id,name,avatar')->latest()->latest('id')->get()
+                ->map(fn (Comment $c) => [
+                    'id'            => $c->id,
+                    'content'       => $c->content,
+                    'author'        => $c->user?->name,
+                    'author_id'     => $c->user?->id,
+                    'author_avatar' => $c->user?->avatar ? '/storage/' . $c->user->avatar : null,
+                    'created_at'    => $c->created_at->toIso8601String(),
+                    'delete_url'    => match (true) {
+                        $isAdmin                                  => "/admin/comments/{$c->id}",
+                        $isStudent && $c->user_id === $viewer->id => "/comments/{$c->id}",
+                        default                                   => null,
+                    },
+                ])->values()
+            : collect();
+
         return Inertia::render('Posts/Show', [
             'post' => [
                 'id'               => $post->id,
@@ -45,6 +65,10 @@ class PostShowController extends Controller
                     && $post->likes()->where('user_id', $viewer->id)->exists(),
                 // Hanya siswa yang bisa like, dan hanya untuk postingan yang sedang tayang
                 'can_like'         => $viewer?->role === 'user' && $post->isActive(),
+                // Hanya siswa yang bisa menulis komentar, dan hanya di postingan yang sedang tayang
+                'can_comment'      => $isStudent && $post->isActive(),
+                'comments_count'   => $post->comments()->count(),
+                'comments'         => $comments,
                 'rejection_reason' => $canSeePrivate ? $post->rejection_reason : null,
                 'suspension_reason' => $canSeePrivate ? $post->suspension_reason : null,
                 // Siswa bisa melaporkan postingan tayang milik orang lain, sekali saja

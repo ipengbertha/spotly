@@ -3,6 +3,8 @@ import ViewerLayout from '../../Layouts/ViewerLayout';
 import Avatar from '../../Components/Avatar';
 import StatusBadge from '../../Components/StatusBadge';
 import LikeButton from '../../Components/LikeButton';
+import CommentIcon from '../../Components/CommentIcon';
+import CommentSection from '../../Components/CommentSection';
 import ReportButton, { FlagIcon } from '../../Components/ReportButton';
 
 const formatDate = (iso) =>
@@ -105,6 +107,11 @@ export default function Show({ post, viewer }) {
                         {post.is_active && (
                             <div className="mt-8 flex items-center gap-3 border-t border-ink/10 pt-4">
                                 <LikeButton big postId={post.id} count={post.likes_count} liked={post.liked} />
+                                <a href="#komentar" aria-label={`${post.comments_count} komentar`}
+                                    className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-base font-semibold text-ink/60 transition hover:bg-grape/10 hover:text-grape">
+                                    <CommentIcon className="h-6 w-6" />
+                                    {post.comments_count}
+                                </a>
                                 {viewer === 'guest' && (
                                     <span className="text-sm text-ink/60">Masuk untuk menyukai postingan ini.</span>
                                 )}
@@ -121,6 +128,8 @@ export default function Show({ post, viewer }) {
                         )}
                     </div>
                 </article>
+
+                {post.is_active && <CommentSection post={post} viewer={viewer} />}
             </div>
         </ViewerLayout>
     );

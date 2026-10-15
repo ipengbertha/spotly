@@ -111,7 +111,7 @@ class SettingsController extends Controller
     {
         return $user->isAdmin()
             ? ['post_submitted']
-            : ['post_approved', 'post_rejected'];
+            : ['post_approved', 'post_rejected', 'comment_received'];
     }
 
         // Hanya admin

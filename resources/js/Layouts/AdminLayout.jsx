@@ -7,6 +7,7 @@ const ICONS = {
     home:    'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',
     doc:     'M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6',
     flag:    'M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7',
+    chat:    'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
     clock:   'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2',
     archive: 'M3 4h18v4H3zM5 8v12h14V8M10 12h4',
     tag:     'M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8zM7.5 7.5h.01',
@@ -88,6 +89,7 @@ export default function AdminLayout({ title, children }) {
     const onUsers = u.pathname.startsWith('/admin/users');
     const onReviews = u.pathname.startsWith('/admin/reviews');
     const onReports = u.pathname.startsWith('/admin/reports');
+    const onComments = u.pathname.startsWith('/admin/comments');
     const onArchive = u.pathname.startsWith('/admin/archive');
     const onCategories = u.pathname.startsWith('/admin/categories');
     const onPosts = u.pathname.startsWith('/admin/posts');
@@ -97,6 +99,7 @@ export default function AdminLayout({ title, children }) {
         : onCategories ? '/admin/categories'
         : onPosts ? '/admin/posts'
         : onReports ? '/admin/reports'
+        : onComments ? '/admin/comments'
         : '/admin/reviews';
     const [q, setQ] = useState(u.pathname === searchPath ? (u.searchParams.get('q') ?? '') : '');
 
@@ -109,6 +112,7 @@ export default function AdminLayout({ title, children }) {
     const isReview = url.startsWith('/admin/reviews');
     const isPosts = url.startsWith('/admin/posts');
     const isReports = url.startsWith('/admin/reports');
+    const isComments = url.startsWith('/admin/comments');
     const isCategories = url.startsWith('/admin/categories');
     const isUsers = url.startsWith('/admin/users');
     const isArchive = url.startsWith('/admin/archive');
@@ -131,6 +135,7 @@ export default function AdminLayout({ title, children }) {
             { icon: 'doc',     label: 'Postingan', href: '/admin/posts', active: isPosts },
             { icon: 'clock',   label: 'Review',    href: '/admin/reviews', active: isReview },
             { icon: 'flag',    label: 'Laporan',   href: '/admin/reports', active: isReports, badge: pendingReports },
+            { icon: 'chat',    label: 'Komentar',  href: '/admin/comments', active: isComments },
             { icon: 'archive', label: 'Arsip',     href: '/admin/archive', active: isArchive },
         ]],
         ['Manajemen', [
@@ -209,7 +214,7 @@ export default function AdminLayout({ title, children }) {
 
                         <h1 className="truncate pl-2 text-xl text-ink">{title}</h1>
 
-                            {(onMading || onUsers || onReviews || onArchive || onCategories || onPosts) && (
+                            {(onMading || onUsers || onReviews || onArchive || onCategories || onPosts || onComments) && (
                                                         <form onSubmit={search} className="relative ml-2 hidden w-full max-w-md sm:block">
                                 <input value={q} onChange={(e) => setQ(e.target.value)}
                                     placeholder={onMading ? 'Cari informasi...'
@@ -217,6 +222,7 @@ export default function AdminLayout({ title, children }) {
                                         : onArchive ? 'Cari di arsip...'
                                         : onCategories ? 'Cari kategori...'
                                         : onPosts ? 'Cari postingan...'
+                                        : onComments ? 'Cari komentar...'
                                         : 'Cari di antrean review...'}
                                     className="w-full rounded-full border border-ink/10 bg-cream/70 py-2 pl-4 pr-12 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20" />
                                 <button type="submit" aria-label="Cari"

@@ -61,12 +61,12 @@ class Post extends Model
     public function reports()  { return $this->hasMany(Report::class); }
 
     /**
-     * Tambahkan jumlah suka (likes_count) dan, kalau $userId diberikan,
-     * penanda "sudah disukai pengguna ini" (liked).
+     * Tambahkan jumlah suka (likes_count), jumlah komentar (comments_count) untuk kartu,
+     * dan, kalau $userId diberikan, penanda "sudah disukai pengguna ini" (liked).
      */
     public function scopeWithLikes($query, ?int $userId = null)
     {
-        $query->withCount('likes');
+        $query->withCount(['likes', 'comments']);
 
         if ($userId) {
             $query->withExists([
@@ -99,6 +99,7 @@ class Post extends Model
             // dari scopeWithLikes; 0 / false kalau scope tidak dipakai
             'likes_count'   => (int) ($this->likes_count ?? 0),
             'liked'         => (bool) ($this->liked ?? false),
+            'comments_count' => (int) ($this->comments_count ?? 0),
         ];
     }
 
