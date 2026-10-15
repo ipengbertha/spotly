@@ -69,12 +69,27 @@ CategoryManagementTest, UserManagementTest).
   banyak kategori), hapus kategori dengan kotak pemindahan, nonaktifkan akun
   (login ditolak, sesi aktif dikeluarkan), Setujui/Tolak setelah desain baru
 - Halaman Postingan Saya dan tampilan layar sempit (drawer mobile)
-- config/app.php: pastikan timezone 'Asia/Jakarta'
+
+## Pembaruan (15 Oktober 2026)
+
+Tenggat UKK: 4 Januari 2027.
+
+- Fitur komentar, saklar komentar (penulis), dan moderasi komentar admin.
+- Tahap 1A (kenyamanan membaca): estimasi waktu baca, ukuran font dan mode gelap
+  di halaman baca, pencarian langsung dan filter periode di Mading, bagikan
+  (salin tautan dan WhatsApp), Simpan artikel (hanya siswa login) + halaman
+  /user/tersimpan.
+- Arsip otomatis: perintah `php artisan posts:archive-expired` mengarsipkan postingan
+  published yang masa tayangnya habis dan melepas pin. Dijadwalkan tiap jam di
+  routes/console.php. Lokal: jalankan `php artisan schedule:work` di terminal terpisah
+  (atau jalankan perintahnya sekali sebelum demo); server: cron `schedule:run`.
+  Mading dan halaman Arsip tetap akurat tanpa penjadwal karena membaca lewat waktu.
+- Timezone config/app.php sudah 'Asia/Jakarta'.
+- Catatan lingkungan: folder resource bernama js/Pages (huruf besar). Di Linux, pengecekan
+  halaman Inertia pada tes mencari js/pages, jadi tes bisa gagal di server/CI Linux.
 
 ## Belum dikerjakan
 
-- Arsip otomatis (perintah terjadwal: published yang kedaluwarsa menjadi archived
-  dan pin dilepas). Halaman Arsip sudah jalan tanpa itu karena membaca lewat waktu.
 - Seeder data realistis (sekarang teks lorem ipsum), README
 - Tampilan form postingan siswa (PostForm.jsx) masih gaya slate lama, belum selaras
   dengan tema Spotly
