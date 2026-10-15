@@ -3,6 +3,9 @@
 @import '@fontsource/acme';
 @import '@fontsource/bbh-hegarty';
 
+/* Jendela pendek (laptop kecil, zoom besar): rail menu dibuat lebih ringkas agar tidak meluber */
+@custom-variant short (@media (max-height: 680px));
+
 @theme {
     /* Font */
     --font-sans: 'Google Sans Variable', ui-sans-serif, system-ui, sans-serif;

@@ -40,7 +40,7 @@ function Tip({ children }) {
 
 const BASE =
     'group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition ' +
-    'lg:h-9 lg:w-9 lg:justify-center lg:rounded-full lg:p-0';
+    'lg:h-9 lg:w-9 lg:short:h-8 lg:short:w-8 lg:justify-center lg:rounded-full lg:p-0';
 
 function NavItem({ icon, label, href, active, soon, badge }) {
     const content = (
@@ -140,7 +140,7 @@ export default function UserLayout({ children }) {
 
             {/* SIDEBAR: drawer di layar kecil, rail ikon melayang di layar lebar */}
             <aside
-                className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col gap-3 overflow-y-auto border-r border-peach/40 bg-white p-4 transition-transform lg:inset-y-3 lg:left-4 lg:w-16 lg:translate-x-0 lg:overflow-visible lg:border-0 lg:bg-transparent lg:p-0 ${
+                className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col gap-3 lg:short:gap-2 overflow-y-auto border-r border-peach/40 bg-white p-4 transition-transform lg:inset-y-3 lg:short:inset-y-2 lg:left-4 lg:w-16 lg:translate-x-0 lg:overflow-visible lg:border-0 lg:bg-transparent lg:p-0 ${
                     open ? 'translate-x-0' : '-translate-x-full'}`}
             >
                 {/* Drawer (mobile): logo lengkap + tombol tutup */}
@@ -154,16 +154,16 @@ export default function UserLayout({ children }) {
 
                 {/* Rail (desktop): pill logo */}
                 <Link href="/" aria-label="Spotly"
-                    className="hidden h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-md ring-1 ring-ink/5 lg:flex">
+                    className="hidden h-16 w-16 lg:short:h-12 lg:short:w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-md ring-1 ring-ink/5 lg:flex">
                     <Logo variant="icon" className="h-10" />
                 </Link>
 
                 {/* Menu utama */}
                 <nav onClick={() => setOpen(false)}
-                    className="flex min-h-0 flex-1 flex-col lg:items-center lg:justify-center lg:rounded-full lg:bg-ink lg:py-3 lg:shadow-md">
+                    className="flex min-h-0 flex-1 flex-col lg:items-center lg:justify-center lg:rounded-full lg:bg-ink lg:py-3 lg:short:py-2 lg:shadow-md">
                     {groups.map(([label, items], i) => (
                         <div key={label} className="flex flex-col gap-0.5 lg:items-center">
-                            {i > 0 && <div className="hidden h-px w-6 bg-white/20 lg:my-1.5 lg:block" />}
+                            {i > 0 && <div className="hidden h-px w-6 bg-white/20 lg:my-1.5 lg:short:my-1 lg:block" />}
                             <p className="mt-4 px-3 text-xs font-bold uppercase tracking-wider text-ink/50 lg:hidden">
                                 {label}
                             </p>
@@ -173,7 +173,7 @@ export default function UserLayout({ children }) {
                 </nav>
 
                 {/* Bawah: keluar */}
-                <div className="flex shrink-0 flex-col border-t border-ink/10 pt-3 lg:items-center lg:rounded-full lg:border-t-0 lg:bg-brand lg:py-3 lg:shadow-md">
+                <div className="flex shrink-0 flex-col border-t border-ink/10 pt-3 lg:items-center lg:rounded-full lg:border-t-0 lg:bg-brand lg:py-3 lg:short:py-2 lg:shadow-md">
                     <button onClick={() => router.post('/logout')}
                         className={`${BASE} text-brand hover:bg-brand/10 lg:text-white lg:hover:bg-white/20`}>
                         <Ico name="logout" className="h-5 w-5 shrink-0" />

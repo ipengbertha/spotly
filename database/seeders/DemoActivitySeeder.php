@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Bookmark;
 use App\Models\Category;
 use App\Models\Comment;
 use App\Models\Like;
@@ -17,7 +18,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
- * Data demo untuk fitur interaksi: bio siswa, like, komentar, laporan, dan postingan ditangguhkan.
+ * Data demo untuk fitur interaksi: bio siswa, like, simpanan, komentar, laporan, dan postingan ditangguhkan.
  * Dijalankan SETELAH PostSeeder. Semua tanggal relatif terhadap hari ini.
  */
 class DemoActivitySeeder extends Seeder
@@ -34,6 +35,7 @@ class DemoActivitySeeder extends Seeder
 
         $this->bios($students);
         $this->likes($students);
+        $this->bookmarks($students);
         $this->comments($students);
         $this->suspendedPost($admin, $students);
         $this->reports($admin, $students);
@@ -79,6 +81,33 @@ class DemoActivitySeeder extends Seeder
                 $given++;
             }
         });
+    }
+
+    // Simpan artikel: tiap siswa menyimpan beberapa postingan tayang milik orang lain, jadi halaman
+    // Tersimpan tidak kosong saat demo. Jumlah per siswa berbeda (Ivana paling banyak karena akun demo
+    // utama). Dijalankan ulang tidak menggandakan.
+    private function bookmarks(Collection $students): void
+    {
+        $wanted = ['Ivana' => 4, 'Budi' => 3, 'Citra' => 2, 'Dimas' => 2, 'Elsa' => 1];
+        $active = Post::active()->orderBy('id')->get();
+
+        foreach ($students as $idx => $student) {
+            $want  = $wanted[$student->name] ?? 1;
+            $given = 0;
+
+            // Mulai dari posisi berbeda per siswa supaya pilihannya tidak seragam
+            foreach ($active->slice($idx)->concat($active->slice(0, $idx)) as $post) {
+                if ($given >= $want) {
+                    break;
+                }
+                if ($post->user_id === $student->id) {
+                    continue;
+                }
+
+                Bookmark::firstOrCreate(['post_id' => $post->id, 'user_id' => $student->id]);
+                $given++;
+            }
+        }
     }
 
     // Beberapa komentar pada postingan tayang. Penulis komentar selalu orang lain, bukan pemilik

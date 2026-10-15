@@ -85,12 +85,15 @@ Tenggat UKK: 4 Januari 2027.
   (atau jalankan perintahnya sekali sebelum demo); server: cron `schedule:run`.
   Mading dan halaman Arsip tetap akurat tanpa penjadwal karena membaca lewat waktu.
 - Timezone config/app.php sudah 'Asia/Jakarta'.
+- Seeder data realistis sudah ada (PostSeeder 14 postingan, DemoActivitySeeder: like,
+  simpanan, komentar, laporan). README sudah diperbarui (fitur, penjadwal, tes).
+- Berkas nyasar: tests/CommentTest.php (32 tes) berbeda dari tests/Feature/CommentTest.php
+  (44 tes) dan tidak ikut dijalankan karena di luar folder suite. Kemungkinan salinan lama; periksa lalu hapus.
 - Catatan lingkungan: folder resource bernama js/Pages (huruf besar). Di Linux, pengecekan
   halaman Inertia pada tes mencari js/pages, jadi tes bisa gagal di server/CI Linux.
 
 ## Belum dikerjakan
 
-- Seeder data realistis (sekarang teks lorem ipsum), README
 - Tampilan form postingan siswa (PostForm.jsx) masih gaya slate lama, belum selaras
   dengan tema Spotly
 - Modal Lihat di Review, tabel Postingan, dan Arsip masih menampilkan kategori
@@ -98,10 +101,8 @@ Tenggat UKK: 4 Januari 2027.
 - Home.jsx (landing) belum dicek: kalau mencetak p.category langsung, hanya
   menampilkan kategori utama
 - Pagination halaman Pengguna belum diseragamkan
-- Menu rail redup "segera": user (Disukai, Notifikasi, Profil, Pengaturan),
-  admin (Notifikasi, Pengaturan). Menu Komentar admin dihapus sementara.
-- Fitur komentar dan like (tabel dan model ada, fiturnya belum dibuat). Cek
-  migration comments/likes memakai cascadeOnDelete sebelum dibuat.
+- Menu rail redup "segera": hanya Profil di sisi siswa (UserLayout). Sisi admin tidak
+  punya lagi.
 - 2 tes DashboardTest user (opsional)
 
 ## Catatan teknis
