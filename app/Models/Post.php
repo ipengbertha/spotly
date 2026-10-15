@@ -74,6 +74,7 @@ class Post extends Model
 
     public function comments() { return $this->hasMany(Comment::class); }
     public function likes()    { return $this->hasMany(Like::class); }
+    public function bookmarks() { return $this->hasMany(Bookmark::class); }
     public function reports()  { return $this->hasMany(Report::class); }
 
     /**
@@ -87,6 +88,7 @@ class Post extends Model
         if ($userId) {
             $query->withExists([
                 'likes as liked' => fn ($l) => $l->where('user_id', $userId),
+                'bookmarks as bookmarked' => fn ($b) => $b->where('user_id', $userId),
             ]);
         }
 
@@ -115,6 +117,8 @@ class Post extends Model
             // dari scopeWithLikes; 0 / false kalau scope tidak dipakai
             'likes_count'   => (int) ($this->likes_count ?? 0),
             'liked'         => (bool) ($this->liked ?? false),
+            // dari scopeWithLikes (hanya kalau ada pengguna); false kalau scope tidak dipakai
+            'bookmarked'    => (bool) ($this->bookmarked ?? false),
             'comments_count' => (int) ($this->comments_count ?? 0),
             'reading_minutes' => $this->readingMinutes(),
         ];

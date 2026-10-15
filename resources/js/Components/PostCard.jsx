@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import Icon from './Icon';
 import LikeButton from './LikeButton';
 import CommentIcon from './CommentIcon';
+import BookmarkButton from './BookmarkButton';
 
 export default function PostCard({ p, big = false }) {
     const h = big ? 'h-72' : 'h-52';
@@ -49,6 +50,7 @@ export default function PostCard({ p, big = false }) {
                             {p.comments_count ?? 0}
                         </span>
                         <LikeButton postId={p.id} count={p.likes_count} liked={p.liked} />
+                        <BookmarkButton postId={p.id} saved={p.bookmarked} />
                     </div>
                 </div>
             </div>

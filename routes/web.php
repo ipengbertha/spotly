@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\BookmarkController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\ProfileController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\FeedController;
 use App\Http\Controllers\User\LikedController;
 use App\Http\Controllers\User\PostController;
+use App\Http\Controllers\User\SavedController;
 use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +40,11 @@ Route::get('/profil/{user}', [ProfileController::class, 'show'])->name('profiles
 Route::post('/posts/{post}/like', [LikeController::class, 'toggle'])
     ->middleware(['auth', EnsureUserIsActive::class, 'role:user'])
     ->name('posts.like');
+
+// Simpan artikel: hanya siswa. Tamu diarahkan ke login, admin mendapat 403.
+Route::post('/posts/{post}/bookmark', [BookmarkController::class, 'toggle'])
+    ->middleware(['auth', EnsureUserIsActive::class, 'role:user'])
+    ->name('posts.bookmark');
 
 // Komentar: hanya siswa yang menulis dan menghapus komentarnya sendiri.
 // Tamu diarahkan ke login, admin mendapat 403 (admin menghapus lewat /admin/comments).
@@ -137,4 +144,5 @@ Route::middleware(['auth', EnsureUserIsActive::class, 'role:user'])->prefix('use
     Route::post('posts/{post}/submit', [PostController::class, 'submit'])->name('posts.submit');
 
     Route::get('/disukai', [LikedController::class, 'index'])->name('liked');
+    Route::get('/tersimpan', [SavedController::class, 'index'])->name('saved');
 });

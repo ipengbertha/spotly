@@ -3,6 +3,7 @@ import ViewerLayout from '../../Layouts/ViewerLayout';
 import Avatar from '../../Components/Avatar';
 import StatusBadge from '../../Components/StatusBadge';
 import LikeButton from '../../Components/LikeButton';
+import BookmarkButton from '../../Components/BookmarkButton';
 import CommentIcon from '../../Components/CommentIcon';
 import CommentSection from '../../Components/CommentSection';
 import ReportButton, { FlagIcon } from '../../Components/ReportButton';
@@ -123,6 +124,9 @@ export default function Show({ post, viewer }) {
                                     <CommentIcon className="h-6 w-6" />
                                     {post.comments_count}
                                 </a>
+                                {post.can_bookmark && (
+                                    <BookmarkButton big onDark={dark} postId={post.id} saved={post.bookmarked} />
+                                )}
                                 {viewer === 'guest' && (
                                     <span className={`text-sm ${dark ? 'text-white/70' : 'text-ink/60'}`}>Masuk untuk menyukai postingan ini.</span>
                                 )}

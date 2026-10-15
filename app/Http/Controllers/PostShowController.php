@@ -66,6 +66,10 @@ class PostShowController extends Controller
                     && $post->likes()->where('user_id', $viewer->id)->exists(),
                 // Hanya siswa yang bisa like, dan hanya untuk postingan yang sedang tayang
                 'can_like'         => $viewer?->role === 'user' && $post->isActive(),
+                // Simpan artikel: hanya siswa, dan hanya untuk postingan yang sedang tayang
+                'can_bookmark'     => $isStudent && $post->isActive(),
+                'bookmarked'       => $isStudent
+                    && $post->bookmarks()->where('user_id', $viewer->id)->exists(),
                 // Hanya siswa yang bisa menulis komentar, dan hanya di postingan yang sedang tayang
                 'can_comment'      => $isStudent && $post->isActive() && $post->comments_enabled,
                 // Komentar dimatikan penulis: komentar lama tetap tampil, komentar baru ditutup
