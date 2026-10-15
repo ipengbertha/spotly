@@ -21,6 +21,9 @@ class Post extends Model
     public const SUSPENDED = 'suspended';
     public const MAX_PINNED = 3;
 
+    // Kecepatan baca rata-rata untuk estimasi waktu baca (kata per menit)
+    public const READING_WPM = 200;
+
     // status, is_pinned, dll. sengaja TIDAK di-fillable:
     // user tidak boleh mengubahnya lewat form. Diatur di controller/service.
     protected $fillable = [
@@ -55,6 +58,18 @@ class Post extends Model
             ->filter()
             ->values()
             ->all();
+    }
+
+    /**
+     * Estimasi waktu baca dalam menit (dibulatkan ke atas, minimal 1).
+     * Dihitung dari isi artikel setiap kali dibutuhkan, tidak disimpan di database.
+     */
+    public function readingMinutes(): int
+    {
+        $text  = trim(strip_tags((string) $this->content));
+        $words = $text === '' ? 0 : count(preg_split('/\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY));
+
+        return max(1, (int) ceil($words / self::READING_WPM));
     }
 
     public function comments() { return $this->hasMany(Comment::class); }
@@ -101,6 +116,7 @@ class Post extends Model
             'likes_count'   => (int) ($this->likes_count ?? 0),
             'liked'         => (bool) ($this->liked ?? false),
             'comments_count' => (int) ($this->comments_count ?? 0),
+            'reading_minutes' => $this->readingMinutes(),
         ];
     }
 

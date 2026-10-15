@@ -6,6 +6,8 @@ import LikeButton from '../../Components/LikeButton';
 import CommentIcon from '../../Components/CommentIcon';
 import CommentSection from '../../Components/CommentSection';
 import ReportButton, { FlagIcon } from '../../Components/ReportButton';
+import ShareButtons from '../../Components/ShareButtons';
+import ReaderToolbar, { SIZE_CLASSES, useReaderPrefs } from '../../Components/ReaderToolbar';
 
 const formatDate = (iso) =>
     iso
@@ -16,6 +18,9 @@ export default function Show({ post, viewer }) {
     const fallback = viewer === 'guest' ? '/' : '/user/beranda';
     const back = () => (window.history.length > 1 ? window.history.back() : router.visit(fallback));
     const date = formatDate(post.published_at);
+    // Ukuran teks dan mode gelap: hanya untuk area artikel, diingat di browser
+    const [prefs, setPrefs] = useReaderPrefs();
+    const dark = prefs.dark;
 
     return (
         <ViewerLayout viewer={viewer} title="Detail Postingan">
@@ -56,7 +61,8 @@ export default function Show({ post, viewer }) {
                     </div>
                 )}
 
-                <article className="relative overflow-hidden rounded-3xl border-2 border-peach bg-white shadow-md">
+                <article className={`relative overflow-hidden rounded-3xl border-2 shadow-md transition-colors ${
+                    dark ? 'border-grape/50 bg-ink' : 'border-peach bg-white'}`}>
                     {/* Ikon laporan di pojok kanan atas (tanpa z-index supaya dialognya tetap di atas header) */}
                     {post.is_active && (post.can_report || post.reported) && (
                         <div className="absolute right-4 top-4">
@@ -87,41 +93,50 @@ export default function Show({ post, viewer }) {
                             ))}
                         </div>
 
-                        <h1 className="mt-3 text-3xl font-bold leading-tight text-ink sm:text-4xl">{post.title}</h1>
+                        <h1 className={`mt-3 text-3xl font-bold leading-tight sm:text-4xl ${dark ? 'text-white' : 'text-ink'}`}>{post.title}</h1>
 
-                        <div className="mt-3 flex items-center gap-2 text-sm font-medium text-ink/70">
+                        <div className={`mt-3 flex items-center gap-2 text-sm font-medium ${dark ? 'text-white/70' : 'text-ink/70'}`}>
                             <Avatar src={post.author_avatar} name={post.author} className="h-7 w-7 text-xs" />
                             <p>
                                 Oleh{' '}
                                 {post.author_id
-                                    ? <Link href={`/profil/${post.author_id}`} className="font-semibold text-ink hover:text-brand hover:underline">{post.author ?? 'Penulis'}</Link>
+                                    ? <Link href={`/profil/${post.author_id}`} className={`font-semibold hover:text-brand hover:underline ${dark ? 'text-white' : 'text-ink'}`}>{post.author ?? 'Penulis'}</Link>
                                     : (post.author ?? 'Penulis')}
                                 {date && <> &middot; Tayang {date}</>}
+                                {post.reading_minutes && <> &middot; {post.reading_minutes} menit baca</>}
                             </p>
                         </div>
 
-                        <div className="mt-6 max-w-prose whitespace-pre-line wrap-break-word leading-relaxed text-ink/90">
+                        <ReaderToolbar prefs={prefs} onChange={setPrefs} />
+
+                        <div className={`mt-6 max-w-prose whitespace-pre-line wrap-break-word leading-relaxed ${
+                            SIZE_CLASSES[prefs.size]} ${dark ? 'text-white/90' : 'text-ink/90'}`}>
                             {post.content}
                         </div>
 
                         {post.is_active && (
-                            <div className="mt-8 flex items-center gap-3 border-t border-ink/10 pt-4">
-                                <LikeButton big postId={post.id} count={post.likes_count} liked={post.liked} />
+                            <div className={`mt-8 flex flex-wrap items-center gap-3 border-t pt-4 ${dark ? 'border-white/15' : 'border-ink/10'}`}>
+                                <LikeButton big onDark={dark} postId={post.id} count={post.likes_count} liked={post.liked} />
                                 <a href="#komentar" aria-label={`${post.comments_count} komentar`}
-                                    className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-base font-semibold text-ink/60 transition hover:bg-grape/10 hover:text-grape">
+                                    className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-base font-semibold transition hover:bg-grape/10 hover:text-grape ${
+                                        dark ? 'text-white/70' : 'text-ink/60'}`}>
                                     <CommentIcon className="h-6 w-6" />
                                     {post.comments_count}
                                 </a>
                                 {viewer === 'guest' && (
-                                    <span className="text-sm text-ink/60">Masuk untuk menyukai postingan ini.</span>
+                                    <span className={`text-sm ${dark ? 'text-white/70' : 'text-ink/60'}`}>Masuk untuk menyukai postingan ini.</span>
                                 )}
+                                <div className="ml-auto">
+                                    <ShareButtons title={post.title} onDark={dark} />
+                                </div>
                             </div>
                         )}
 
                         {post.edit_url && (
-                            <div className="mt-8 border-t border-ink/10 pt-4">
+                            <div className={`mt-8 border-t pt-4 ${dark ? 'border-white/15' : 'border-ink/10'}`}>
                                 <Link href={post.edit_url}
-                                    className="inline-block rounded-xl border border-ink/20 px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5">
+                                    className={`inline-block rounded-xl border px-4 py-2 text-sm font-semibold ${
+                                        dark ? 'border-white/30 text-white hover:bg-white/10' : 'border-ink/20 text-ink hover:bg-ink/5'}`}>
                                     Edit postingan
                                 </Link>
                             </div>

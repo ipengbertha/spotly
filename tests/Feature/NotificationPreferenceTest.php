@@ -80,8 +80,9 @@ class NotificationPreferenceTest extends TestCase
     public function test_student_can_save_preferences(): void
     {
         $this->actingAs($this->student)->put('/settings/notifications', [
-            'post_approved' => false,
-            'post_rejected' => true,
+            'post_approved'    => false,
+            'post_rejected'    => true,
+            'comment_received' => true,
         ])->assertSessionHasNoErrors();
 
         $fresh = $this->student->fresh();
@@ -92,9 +93,10 @@ class NotificationPreferenceTest extends TestCase
     public function test_student_cannot_store_admin_preference_key(): void
     {
         $this->actingAs($this->student)->put('/settings/notifications', [
-            'post_approved'  => true,
-            'post_rejected'  => true,
-            'post_submitted' => false,
+            'post_approved'    => true,
+            'post_rejected'    => true,
+            'comment_received' => true,
+            'post_submitted'   => false,
         ]);
 
         $this->assertArrayNotHasKey('post_submitted', $this->student->fresh()->notification_preferences);

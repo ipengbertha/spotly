@@ -15,17 +15,19 @@ function Heart({ filled, className }) {
 // - Siswa: bisa menekan (suka / batal suka)
 // - Tamu: menekan -> diarahkan ke halaman login
 // - Admin: hanya melihat jumlah (bukan tombol)
-export default function LikeButton({ postId, count = 0, liked = false, big = false }) {
+export default function LikeButton({ postId, count = 0, liked = false, big = false, onDark = false }) {
     const { auth } = usePage().props;
     const role = auth?.user?.role;
     const [busy, setBusy] = useState(false);
 
     const size = big ? 'h-6 w-6' : 'h-5 w-5';
     const text = big ? 'text-base' : 'text-sm';
+    // Di latar gelap (mode gelap halaman baca) warna teks netral dibuat terang
+    const idle = onDark ? 'text-white/70 hover:text-brand' : 'text-ink/60 hover:text-brand';
 
     if (role === 'admin') {
         return (
-            <span title="Jumlah suka" className={`inline-flex items-center gap-1.5 font-semibold text-ink/60 ${text}`}>
+            <span title="Jumlah suka" className={`inline-flex items-center gap-1.5 font-semibold ${onDark ? 'text-white/70' : 'text-ink/60'} ${text}`}>
                 <Heart filled={false} className={size} />
                 {count}
             </span>
@@ -56,7 +58,7 @@ export default function LikeButton({ postId, count = 0, liked = false, big = fal
             aria-pressed={liked}
             aria-label={liked ? `Batal suka (${count} suka)` : `Suka (${count} suka)`}
             className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 font-semibold transition hover:bg-brand/10 disabled:opacity-60 ${text} ${
-                liked ? 'text-brand' : 'text-ink/60 hover:text-brand'}`}>
+                liked ? 'text-brand' : idle}`}>
             <Heart filled={liked} className={size} />
             {count}
         </button>

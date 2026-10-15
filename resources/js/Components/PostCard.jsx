@@ -35,7 +35,12 @@ export default function PostCard({ p, big = false }) {
                 <h3 className={`font-bold leading-snug text-ink ${big ? 'text-xl' : 'text-lg'}`}>{p.title}</h3>
                 <p className="text-sm text-ink/85">{p.excerpt}</p>
                 <div className="flex items-center justify-between gap-2 pt-1">
-                    <p className="text-xs font-medium text-ink/70">{p.author} · {p.published_at}</p>
+                    <div className="min-w-0">
+                        <p className="text-xs font-medium text-ink/70">{p.author} · {p.published_at}</p>
+                        {p.reading_minutes && (
+                            <p className="mt-0.5 text-xs text-ink/55">{p.reading_minutes} menit baca</p>
+                        )}
+                    </div>
                     <div className="flex items-center">
                         {/* Jumlah komentar: hanya angka, isinya ada di halaman detail */}
                         <span title="Jumlah komentar" aria-label={`${p.comments_count ?? 0} komentar`}

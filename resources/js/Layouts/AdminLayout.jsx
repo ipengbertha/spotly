@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import Logo from '../Components/Logo';
+import useLiveSearch, { madingSearchParams } from '../hooks/useLiveSearch';
 
 const ICONS = {
     dash:    'M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z',
@@ -103,9 +104,12 @@ export default function AdminLayout({ title, children }) {
         : '/admin/reviews';
     const [q, setQ] = useState(u.pathname === searchPath ? (u.searchParams.get('q') ?? '') : '');
 
+    // Pencarian langsung hanya di Mading; halaman admin lain tetap memakai Enter
+    useLiveSearch({ enabled: onMading, q, url });
+
     const search = (e) => {
         e.preventDefault();
-        router.get(searchPath, q ? { q } : {});
+        router.get(searchPath, onMading ? madingSearchParams(url, q) : (q ? { q } : {}));
     };
 
     const isDash = url.startsWith('/admin/dashboard');

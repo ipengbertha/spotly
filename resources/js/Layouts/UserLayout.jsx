@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import Logo from '../Components/Logo';
+import useLiveSearch, { madingSearchParams } from '../hooks/useLiveSearch';
 
 const ICONS = {
     home:   'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',
@@ -96,9 +97,12 @@ export default function UserLayout({ children }) {
     const [menu, setMenu] = useState(false);
     const [q, setQ] = useState(onBeranda ? (u.searchParams.get('q') ?? '') : '');
 
+    // Di Mading, hasil dimuat sendiri saat mengetik; filter kategori dan tanggal ikut terbawa
+    useLiveSearch({ enabled: onBeranda, q, url });
+
     const search = (e) => {
         e.preventDefault();
-        router.get('/user/beranda', q ? { q } : {});
+        router.get('/user/beranda', madingSearchParams(onBeranda ? url : '/user/beranda', q));
     };
 
     const initial = (user?.name ?? '?').trim().charAt(0).toUpperCase();

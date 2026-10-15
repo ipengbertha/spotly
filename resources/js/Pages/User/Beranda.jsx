@@ -15,25 +15,50 @@ function Chip({ href, active, children }) {
     );
 }
 
+// Pilihan filter tanggal (nilai = jumlah hari, harus sama dengan FeedController::PERIOD_OPTIONS)
+const PERIODS = [
+    { value: 7,  label: '7 hari' },
+    { value: 30, label: '30 hari' },
+    { value: 90, label: '3 bulan' },
+];
+
 export default function Beranda({ posts, filters, isAdmin, categories = [] }) {
     const { auth } = usePage().props;
     const Layout = isAdmin ? AdminLayout : UserLayout;
     const catName = categories.find((c) => String(c.id) === String(filters.category))?.name;
+
+    // Alamat Mading dengan filter yang sedang aktif; `overrides` mengubah sebagian saja (null = dihapus)
+    const buildHref = (overrides = {}) => {
+        const params = {
+            q: filters.q,
+            category: filters.category,
+            period: filters.period,
+            spotlight: filters.spotlight ? 1 : null,
+            ...overrides,
+        };
+        const qs = new URLSearchParams(
+            Object.entries(params).filter(([, v]) => v !== null && v !== undefined && v !== '' && v !== false)
+        ).toString();
+        return qs ? `/user/beranda?${qs}` : '/user/beranda';
+    };
+
+    const periodLabel = PERIODS.find((x) => x.value === Number(filters.period))?.label;
 
     let title = 'Informasi Terbaru';
     let subtitle = 'Temukan informasi terbaru dari sekolah.';
     if (filters.spotlight) {
         title = 'Spotlight';
         subtitle = 'Informasi pilihan yang sedang menjadi sorotan.';
+    } else if (filters.q) {
+        title = `Hasil untuk "${filters.q}"`;
+        subtitle = `${posts.total} postingan ditemukan${catName ? ` dalam kategori ${catName}` : ''}.`;
     } else if (catName) {
         title = catName;
         subtitle = `Semua postingan dalam kategori ${catName}.`;
-    } else if (filters.q) {
-        title = `Hasil untuk "${filters.q}"`;
-        subtitle = `${posts.total} postingan ditemukan.`;
     }
+    if (periodLabel) subtitle += ` Hanya yang tayang dalam ${periodLabel} terakhir.`;
 
-    const isFiltering = Boolean(filters.q || filters.category || filters.spotlight);
+    const isFiltering = Boolean(filters.q || filters.category || filters.spotlight || filters.period);
     const noCategory = !filters.category && !filters.spotlight;
 
     return (
@@ -58,12 +83,24 @@ export default function Beranda({ posts, filters, isAdmin, categories = [] }) {
             </div>
 
             {/* Filter kategori */}
-            <div className="mb-8 flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
-                <Chip href="/user/beranda" active={noCategory}>Semua</Chip>
+            <div className="mb-3 flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                <Chip href={buildHref({ category: null, spotlight: null })} active={noCategory}>Semua</Chip>
                 {categories.map((c) => (
-                    <Chip key={c.id} href={`/user/beranda?category=${c.id}`}
+                    <Chip key={c.id} href={buildHref({ category: c.id, spotlight: null })}
                         active={String(c.id) === String(filters.category)}>
                         {c.name}
+                    </Chip>
+                ))}
+            </div>
+
+            {/* Filter tanggal */}
+            <div className="mb-8 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                <span className="shrink-0 text-sm font-semibold text-ink/60">Tayang:</span>
+                <Chip href={buildHref({ period: null })} active={!filters.period}>Semua</Chip>
+                {PERIODS.map((x) => (
+                    <Chip key={x.value} href={buildHref({ period: x.value })}
+                        active={Number(filters.period) === x.value}>
+                        {x.label}
                     </Chip>
                 ))}
             </div>
