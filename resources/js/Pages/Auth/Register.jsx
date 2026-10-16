@@ -40,10 +40,10 @@ export default function Register() {
         <AuthLayout title="Buat akun Spotly" subtitle="Isi data diri sesuai dengan data diirmu dan mulai perjalananmu di Spotly!">
             <Head title="Daftar" />
             <form onSubmit={submit} className="space-y-4">
-                <TextField label="Nama Lengkap" autoComplete="name" value={data.name}
+                <TextField label="Nama Lengkap" autoComplete="name" placeholder="Nama Lengkap Kamu" value={data.name}
                     onChange={(e) => setData('name', e.target.value)} error={errors.name} />
 
-                <TextField label="E-Mail Aktif" type="email" autoComplete="email" value={data.email}
+                <TextField label="E-Mail Aktif" type="email" autoComplete="email" placeholder="nama@example.com" value={data.email}
                     onChange={(e) => setData('email', e.target.value)} error={errors.email} />
 
                 <TextField label="Nomor Telp. Aktif" type="tel" inputMode="numeric" autoComplete="tel"
@@ -51,14 +51,14 @@ export default function Register() {
                     onChange={(e) => setData('phone', e.target.value.replace(/[^0-9+]/g, ''))}
                     error={errors.phone} />
 
-                <TextField label="Username ID" autoComplete="username" placeholder="contoh: dimas_25"
+                <TextField label="Username ID" autoComplete="username" placeholder="example: usernamekamu_id"
                     hint="Buat Username ID milikmu. Gunakan huruf kecil, angka, underscore, dan titik."
                     value={data.username}
                     onChange={(e) => setData('username', e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
                     error={errors.username} />
 
                 <div>
-                    <TextField label="Password Kuat" type="password" autoComplete="new-password" value={data.password}
+                    <TextField label="Password Kuat" type="password" autoComplete="new-password" placeholder="•••••••••••••" value={data.password}
                         onChange={(e) => setData('password', e.target.value)} error={errors.password} />
                     <ul className="mt-2 space-y-1">
                         {RULES.map(([label, test]) => {
@@ -74,7 +74,7 @@ export default function Register() {
                 </div>
 
                 <div>
-                    <TextField label="Konfirmasi Password" type="password" autoComplete="new-password"
+                    <TextField label="Konfirmasi Password" type="password" autoComplete="new-password" placeholder="•••••••••••••"
                         value={data.password_confirmation}
                         onChange={(e) => setData('password_confirmation', e.target.value)} />
                     {mismatch && <p className="mt-1 text-sm font-medium text-red-600">Password belum sama.</p>}

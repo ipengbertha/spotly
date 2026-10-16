@@ -54,6 +54,9 @@ export default function Index({ comments, filters }) {
                         {comments.data.map((c) => (
                             <tr key={c.id}>
                                 <td className="max-w-xs px-5 py-3 text-ink">
+                                    {c.reply_to && (
+                                        <p className="mb-0.5 text-xs font-semibold text-grape">&#8618; membalas {c.reply_to}</p>
+                                    )}
                                     <p className="line-clamp-3 whitespace-pre-line wrap-break-word">{c.content}</p>
                                 </td>
                                 <td className="whitespace-nowrap px-5 py-3 text-ink/70">
@@ -105,7 +108,7 @@ export default function Index({ comments, filters }) {
 
             <ConfirmDialog open={!!target} title="Hapus komentar?"
                 message={target
-                    ? `Komentar dari ${target.author ?? 'siswa'} akan dihapus permanen dan tidak bisa dikembalikan.`
+                    ? `Komentar dari ${target.author ?? 'siswa'}${target.replies_count > 0 ? ` beserta semua balasan di bawahnya (${target.replies_count} balasan langsung)` : ''} akan dihapus permanen dan tidak bisa dikembalikan.`
                     : ''}
                 confirmLabel="Ya, hapus"
                 onConfirm={confirmDelete} onCancel={() => setTarget(null)} />

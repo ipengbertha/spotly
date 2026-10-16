@@ -75,6 +75,7 @@ class Post extends Model
     public function comments() { return $this->hasMany(Comment::class); }
     public function likes()    { return $this->hasMany(Like::class); }
     public function bookmarks() { return $this->hasMany(Bookmark::class); }
+        public function reactions() { return $this->hasMany(PostReaction::class); }
     public function reports()  { return $this->hasMany(Report::class); }
 
     /**

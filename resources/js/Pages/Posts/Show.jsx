@@ -6,8 +6,8 @@ import LikeButton from '../../Components/LikeButton';
 import BookmarkButton from '../../Components/BookmarkButton';
 import CommentIcon from '../../Components/CommentIcon';
 import CommentSection from '../../Components/CommentSection';
-import ReportButton, { FlagIcon } from '../../Components/ReportButton';
-import ShareButtons from '../../Components/ShareButtons';
+import PostMenu from '../../Components/PostMenu';
+import ReactionBar from '../../Components/ReactionBar';
 import ReaderToolbar, { SIZE_CLASSES, useReaderPrefs } from '../../Components/ReaderToolbar';
 
 const formatDate = (iso) =>
@@ -64,19 +64,10 @@ export default function Show({ post, viewer }) {
 
                 <article className={`relative overflow-hidden rounded-3xl border-2 shadow-md transition-colors ${
                     dark ? 'border-grape/50 bg-ink' : 'border-peach bg-white'}`}>
-                    {/* Ikon laporan di pojok kanan atas (tanpa z-index supaya dialognya tetap di atas header) */}
-                    {post.is_active && (post.can_report || post.reported) && (
+                    {/* Menu titik tiga di pojok kanan atas (tanpa z-index supaya dialognya tetap di atas header) */}
+                    {post.is_active && (
                         <div className="absolute right-4 top-4">
-                            {post.can_report && (
-                                <ReportButton postId={post.id} reasons={post.report_reasons} />
-                            )}
-                            {post.reported && (
-                                <span title="Kamu sudah melaporkan postingan ini"
-                                    aria-label="Kamu sudah melaporkan postingan ini"
-                                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-brand shadow-sm ring-1 ring-brand/30">
-                                    <FlagIcon filled />
-                                </span>
-                            )}
+                            <PostMenu post={post} />
                         </div>
                     )}
 
@@ -124,15 +115,17 @@ export default function Show({ post, viewer }) {
                                     <CommentIcon className="h-6 w-6" />
                                     {post.comments_count}
                                 </a>
+                                <span aria-hidden="true" className={`h-5 w-px ${dark ? 'bg-white/20' : 'bg-ink/15'}`} />
+                                <ReactionBar onDark={dark} postId={post.id}
+                                    reactions={post.reactions} mine={post.my_reaction} />
                                 {post.can_bookmark && (
-                                    <BookmarkButton big onDark={dark} postId={post.id} saved={post.bookmarked} />
+                                    <div className="ml-auto">
+                                        <BookmarkButton big onDark={dark} postId={post.id} saved={post.bookmarked} />
+                                    </div>
                                 )}
                                 {viewer === 'guest' && (
                                     <span className={`text-sm ${dark ? 'text-white/70' : 'text-ink/60'}`}>Masuk untuk menyukai postingan ini.</span>
                                 )}
-                                <div className="ml-auto">
-                                    <ShareButtons title={post.title} onDark={dark} />
-                                </div>
                             </div>
                         )}
 

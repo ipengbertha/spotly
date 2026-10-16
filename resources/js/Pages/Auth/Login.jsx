@@ -18,9 +18,9 @@ export default function Login() {
         <AuthLayout title="Masuk">
             <Head title="Masuk" />
             <form onSubmit={submit} className="space-y-4">
-                <TextField label="Email" type="email" autoComplete="email" value={data.email}
+                <TextField label="Email" type="email" autoComplete="email" placeholder="nama@example.com" value={data.email}
                     onChange={(e) => setData('email', e.target.value)} error={errors.email} />
-                <TextField label="Password" type="password" autoComplete="current-password" value={data.password}
+                <TextField label="Password" type="password" autoComplete="current-password" placeholder="•••••••••••••" value={data.password}
                     onChange={(e) => setData('password', e.target.value)} error={errors.password} />
 
                 <div className="flex items-center justify-between">

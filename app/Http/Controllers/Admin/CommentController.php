@@ -17,7 +17,8 @@ class CommentController extends Controller
 
         return Inertia::render('Admin/Comments/Index', [
             'filters'  => ['q' => $q],
-            'comments' => Comment::with(['user:id,name', 'post:id,title,slug,status,expired_at'])
+            'comments' => Comment::with(['user:id,name', 'post:id,title,slug,status,expired_at', 'parent.user:id,name'])
+                ->withCount('replies')
                 ->when($q, fn ($query) => $query->where(function ($w) use ($q) {
                     $w->where('content', 'like', "%{$q}%")
                         ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$q}%"))
@@ -30,6 +31,8 @@ class CommentController extends Controller
                 ->through(fn (Comment $c) => [
                     'id'          => $c->id,
                     'content'     => $c->content,
+                    'reply_to'    => $c->parent?->user?->name,
+                    'replies_count' => $c->replies_count,
                     'author'      => $c->user?->name,
                     'author_id'   => $c->user?->id,
                     'post_title'  => $c->post?->title,
@@ -42,7 +45,7 @@ class CommentController extends Controller
     }
 
     // Admin boleh menghapus komentar apa pun, termasuk di postingan yang sudah tidak tayang
-    // (moderasi tidak boleh terhalang status postingan).
+    // (moderasi tidak boleh terhalang status postingan). Balasan di bawahnya ikut terhapus.
     public function destroy(Comment $comment)
     {
         $comment->delete();

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Comment;
 use App\Models\Post;
+use App\Models\PostReaction;
 use App\Models\Report;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -28,24 +29,56 @@ class PostShowController extends Controller
         $reported      = $viewer !== null
             && $post->reports()->where('user_id', $viewer->id)->exists();
 
-        // Komentar hanya dibuka untuk postingan yang sedang tayang, terbaru di atas.
+        // Komentar hanya dibuka untuk postingan yang sedang tayang.
+        // Bentuknya pohon: komentar utama (terbaru di atas), masing-masing membawa balasannya
+        // (terlama di atas supaya percakapan terbaca urut). Balasan bisa bertingkat tanpa batas;
+        // tampilan yang membatasi jorokannya.
         // Hapus: siswa hanya miliknya sendiri, admin semuanya (lewat route masing-masing).
-        $comments = $post->isActive()
-            ? $post->comments()->with('user:id,name,avatar')->latest()->latest('id')->get()
-                ->map(fn (Comment $c) => [
-                    'id'            => $c->id,
-                    'content'       => $c->content,
-                    'author'        => $c->user?->name,
-                    'author_id'     => $c->user?->id,
-                    'author_avatar' => $c->user?->avatar ? '/storage/' . $c->user->avatar : null,
-                    'created_at'    => $c->created_at->toIso8601String(),
-                    'delete_url'    => match (true) {
-                        $isAdmin                                  => "/admin/comments/{$c->id}",
-                        $isStudent && $c->user_id === $viewer->id => "/comments/{$c->id}",
-                        default                                   => null,
-                    },
-                ])->values()
-            : collect();
+        // Menghapus komentar ikut menghapus semua balasan di bawahnya.
+        $comments = collect();
+        if ($post->isActive()) {
+            $byParent = $post->comments()->with('user:id,name,username,avatar')
+                ->orderBy('created_at')->orderBy('id')->get()
+                ->groupBy(fn (Comment $c) => $c->parent_id ?? 0);
+
+            $build = function (int $parentId, ?string $parentName, ?string $parentUsername, bool $newestFirst) use (&$build, $byParent, $viewer, $isAdmin, $isStudent) {
+                $list = $byParent->get($parentId, collect());
+                if ($newestFirst) {
+                    $list = $list->reverse();
+                }
+
+                return $list->map(function (Comment $c) use (&$build, $parentName, $parentUsername, $viewer, $isAdmin, $isStudent) {
+                    $replies = $build($c->id, $c->user?->name, $c->user?->username, false);
+
+                    return [
+                        'id'            => $c->id,
+                        'content'       => $c->content,
+                        'author'        => $c->user?->name,
+                        'author_id'     => $c->user?->id,
+                        'author_username' => $c->user?->username,
+                        'author_avatar' => $c->user?->avatar ? '/storage/' . $c->user->avatar : null,
+                        'created_at'    => $c->created_at->toIso8601String(),
+                        'reply_to'      => $parentName,
+                        'reply_to_username' => $parentUsername,
+                        'replies'       => $replies,
+                        // jumlah semua balasan di bawahnya (termasuk balasan dari balasan)
+                        'replies_total' => $replies->sum(fn ($r) => 1 + $r['replies_total']),
+                        'delete_url'    => match (true) {
+                            $isAdmin                                  => "/admin/comments/{$c->id}",
+                            $isStudent && $c->user_id === $viewer->id => "/comments/{$c->id}",
+                            default                                   => null,
+                        },
+                    ];
+                })->values();
+            };
+
+            $comments = $build(0, null, null, true);
+        }
+
+        $reactionCounts = $post->reactions()
+            ->selectRaw('type, count(*) as total')
+            ->groupBy('type')
+            ->pluck('total', 'type');
 
         return Inertia::render('Posts/Show', [
             'post' => [
@@ -66,6 +99,14 @@ class PostShowController extends Controller
                     && $post->likes()->where('user_id', $viewer->id)->exists(),
                 // Hanya siswa yang bisa like, dan hanya untuk postingan yang sedang tayang
                 'can_like'         => $viewer?->role === 'user' && $post->isActive(),
+                'reactions'        => collect(PostReaction::OPTIONS)->map(fn ($emoji, $type) => [
+                    'type'  => $type,
+                    'emoji' => $emoji,
+                    'count' => (int) ($reactionCounts[$type] ?? 0),
+                ])->values(),
+                'my_reaction'      => $isStudent
+                    ? $post->reactions()->where('user_id', $viewer->id)->value('type')
+                    : null,
                 // Simpan artikel: hanya siswa, dan hanya untuk postingan yang sedang tayang
                 'can_bookmark'     => $isStudent && $post->isActive(),
                 'bookmarked'       => $isStudent

@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Comment;
 use App\Models\Post;
 use App\Notifications\CommentReceived;
+use App\Notifications\ReplyReceived;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\Rule;
 
 class CommentController extends Controller
 {
@@ -37,8 +39,11 @@ class CommentController extends Controller
         }
 
         $data = $request->validate([
-            'content' => ['required', 'string', 'min:2', 'max:500'],
+            'content'   => ['required', 'string', 'min:2', 'max:500'],
+            // Balasan: komentar yang dibalas harus ada di postingan yang sama
+            'parent_id' => ['nullable', 'integer', Rule::exists('comments', 'id')->where('post_id', $post->id)],
         ], [
+            'parent_id.exists' => 'Komentar yang kamu balas sudah tidak ada.',
             'content.required' => 'Komentar tidak boleh kosong.',
             'content.min'      => 'Komentar minimal 2 karakter.',
             'content.max'      => 'Komentar maksimal 500 karakter.',
@@ -47,15 +52,27 @@ class CommentController extends Controller
         RateLimiter::hit($key, 60);
 
         $comment = $post->comments()->create([
-            'user_id' => $user->id,
-            'content' => $data['content'],
+            'user_id'   => $user->id,
+            'parent_id' => $data['parent_id'] ?? null,
+            'content'   => $data['content'],
         ]);
+        $comment->setRelation('user', $user);
 
-        // Penulis postingan diberi tahu, kecuali kalau dia mengomentari postingannya sendiri
-        // atau sudah mematikan notifikasi komentar di Pengaturan.
+        // Penulis komentar yang dibalas diberi tahu (kecuali membalas komentarnya sendiri
+        // atau dia mematikan notifikasi komentar di Pengaturan).
+        $parentAuthor = $comment->parent_id ? Comment::find($comment->parent_id)?->user : null;
+        $repliedUserId = null;
+        if ($parentAuthor && $parentAuthor->id !== $user->id && $parentAuthor->wantsNotification('comment_received')) {
+            $parentAuthor->notify(new ReplyReceived($post, $comment));
+            $repliedUserId = $parentAuthor->id;
+        }
+
+        // Penulis postingan diberi tahu, kecuali kalau dia menulis di postingannya sendiri,
+        // sudah mematikan notifikasi komentar, atau sudah diberi tahu lewat balasan di atas.
         $author = $post->user;
-        if ($author && $author->id !== $user->id && $author->wantsNotification('comment_received')) {
-            $author->notify(new CommentReceived($post, $comment->setRelation('user', $user)));
+        if ($author && $author->id !== $user->id && $author->id !== $repliedUserId
+            && $author->wantsNotification('comment_received')) {
+            $author->notify(new CommentReceived($post, $comment));
         }
 
         return back();

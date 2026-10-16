@@ -19,6 +19,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\PostShowController;
+use App\Http\Controllers\ReactionController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\FeedController;
 use App\Http\Controllers\User\LikedController;
@@ -45,6 +46,11 @@ Route::post('/posts/{post}/like', [LikeController::class, 'toggle'])
 Route::post('/posts/{post}/bookmark', [BookmarkController::class, 'toggle'])
     ->middleware(['auth', EnsureUserIsActive::class, 'role:user'])
     ->name('posts.bookmark');
+
+// Reaksi emoji: hanya siswa. Tamu diarahkan ke login, admin mendapat 403.
+Route::post('/posts/{post}/reaction', [ReactionController::class, 'store'])
+    ->middleware(['auth', EnsureUserIsActive::class, 'role:user'])
+    ->name('posts.reaction');
 
 // Komentar: hanya siswa yang menulis dan menghapus komentarnya sendiri.
 // Tamu diarahkan ke login, admin mendapat 403 (admin menghapus lewat /admin/comments).
