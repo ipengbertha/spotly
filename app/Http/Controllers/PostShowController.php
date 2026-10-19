@@ -140,7 +140,7 @@ class PostShowController extends Controller
             'post' => [
                 'id'               => $post->id,
                 'title'            => $post->title,
-                'content'          => $post->content,
+                'content_html'     => $post->contentHtml(),
                 'reading_minutes'  => $post->readingMinutes(),
                 'image_url'        => $post->image ? '/storage/' . $post->image : null,
                 'categories'       => $post->categoryNames(),

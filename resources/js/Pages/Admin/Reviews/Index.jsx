@@ -157,7 +157,7 @@ export default function Index({ posts }) {
                         <img src={`/storage/${dialog.post.image}`} alt=""
                             className="mb-3 max-h-64 w-full rounded-2xl object-cover" />
                     )}
-                    <p className="whitespace-pre-line text-sm text-ink/80">{dialog.post.content}</p>
+                    <div className="post-body text-sm text-ink/80" dangerouslySetInnerHTML={{ __html: dialog.post.content_html }} />
                     <div className="mt-6 flex justify-end">
                         <button onClick={close}
                             className="rounded-full border border-ink/20 px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5">

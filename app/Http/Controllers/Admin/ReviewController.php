@@ -26,7 +26,12 @@ class ReviewController extends Controller
                 }))
                 ->oldest('updated_at')
                 ->paginate(10)
-                ->withQueryString(),
+                ->withQueryString()
+                ->through(function (Post $p) {
+                    $p->setAttribute('content_html', $p->contentHtml());
+
+                    return $p;
+                }),
         ]);
     }
 

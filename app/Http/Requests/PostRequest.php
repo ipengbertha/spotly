@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\PostHtml;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -14,11 +15,22 @@ class PostRequest extends FormRequest
         return true; // otorisasi ditangani PostPolicy di controller
     }
 
+    // Batas isi diukur dari TEKS polosnya (bukan HTML), supaya tag editor tidak ikut dihitung
+    public const MAX_CONTENT_CHARS = 5000;
+
+    // Isi dari editor dibersihkan dulu sebelum divalidasi dan disimpan
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('content')) {
+            $this->merge(['content' => PostHtml::clean((string) $this->input('content'))]);
+        }
+    }
+
     public function rules(): array
     {
         return [
             'title'       => ['required', 'string', 'max:150'],
-            'content'     => ['required', 'string', 'max:5000'],
+            'content'     => ['required', 'string', 'max:60000'], // batas kasar HTML; batas sebenarnya di after()
             'category_id' => ['required', 'exists:categories,id'],
             // Kategori tambahan: opsional, maksimal 2.
             // Kalau ingin WAJIB minimal 1, ganti 'nullable' menjadi 'required' dan tambah 'min:1'.
@@ -39,7 +51,7 @@ class PostRequest extends FormRequest
 
             'content.required' => 'Isi postingan wajib diisi.',
             'content.string'   => 'Isi postingan tidak valid.',
-            'content.max'      => 'Isi postingan maksimal 5000 karakter.',
+            'content.max'      => 'Isi postingan terlalu panjang.',
 
             'category_id.required' => 'Kategori utama wajib dipilih.',
             'category_id.exists'   => 'Kategori utama tidak ditemukan.',
@@ -63,6 +75,17 @@ class PostRequest extends FormRequest
     public function after(): array
     {
         return [
+            function (Validator $validator) {
+                if (! $validator->errors()->has('content')) {
+                    $length = mb_strlen(PostHtml::plainText((string) $this->input('content')));
+
+                    if ($length === 0) {
+                        $validator->errors()->add('content', 'Isi postingan wajib diisi.');
+                    } elseif ($length > self::MAX_CONTENT_CHARS) {
+                        $validator->errors()->add('content', 'Isi postingan maksimal ' . self::MAX_CONTENT_CHARS . ' karakter.');
+                    }
+                }
+            },
             function (Validator $validator) {
                 $primary = (string) $this->input('category_id');
 

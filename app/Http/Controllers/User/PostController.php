@@ -82,7 +82,7 @@ class PostController extends Controller
             'post' => [
                 'id'                 => $post->id,
                 'title'              => $post->title,
-                'content'            => $post->content,
+                'content'            => $post->contentHtml(), // HTML untuk editor
                 'category_id'        => $post->category_id,
                 'extra_category_ids' => $post->extraCategories->pluck('id')->values(),
                 'rejection_reason'   => $post->rejection_reason,

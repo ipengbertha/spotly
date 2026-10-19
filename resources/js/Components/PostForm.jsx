@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useForm } from '@inertiajs/react';
 import ConfirmDialog, { SUBMIT_WARNING } from './ConfirmDialog';
+import RichTextEditor from './RichTextEditor';
 
 const MAX_EXTRA = 2;
 
@@ -99,8 +100,7 @@ export default function PostForm({ categories, post = null }) {
 
                 <div>
                     <label className={LABEL}>Isi</label>
-                    <textarea rows={6} value={data.content} onChange={(e) => setData('content', e.target.value)}
-                        placeholder="Tulis isi postingan" className={INPUT} />
+                    <RichTextEditor value={data.content} onChange={(html) => setData('content', html)} />
                     {errors.content && <p className="mt-1 text-sm text-brand">{errors.content}</p>}
                 </div>
 

@@ -130,10 +130,9 @@ export default function Show({ post, viewer, related = [] }) {
 
                                 <ReaderToolbar prefs={prefs} onChange={setPrefs} />
 
-                                <div className={`mt-6 max-w-prose whitespace-pre-line wrap-break-word leading-relaxed ${
-                                    SIZE_CLASSES[prefs.size]} ${dark ? 'text-white/90' : 'text-ink/90'}`}>
-                                    {post.content}
-                                </div>
+                                <div className={`post-body mt-6 max-w-prose wrap-break-word leading-relaxed ${
+                                    SIZE_CLASSES[prefs.size]} ${dark ? 'text-white/90' : 'text-ink/90'}`}
+                                    dangerouslySetInnerHTML={{ __html: post.content_html }} />
 
                                 {post.is_active && (
                                     <div className={`mt-8 flex flex-wrap items-center gap-3 border-t pt-4 ${dark ? 'border-white/15' : 'border-ink/10'}`}>

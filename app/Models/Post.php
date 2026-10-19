@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Support\PostHtml;
 
 class Post extends Model
 {
@@ -66,10 +67,22 @@ class Post extends Model
      */
     public function readingMinutes(): int
     {
-        $text  = trim(strip_tags((string) $this->content));
+        $text  = $this->contentText();
         $words = $text === '' ? 0 : count(preg_split('/\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY));
 
         return max(1, (int) ceil($words / self::READING_WPM));
+    }
+
+    // Isi artikel siap tampil sebagai HTML (artikel lama berupa teks biasa diubah jadi paragraf)
+    public function contentHtml(): string
+    {
+        return PostHtml::render($this->content);
+    }
+
+    // Isi artikel sebagai teks polos (tanpa tag), untuk kutipan dan hitungan kata
+    public function contentText(): string
+    {
+        return PostHtml::plainText($this->content);
     }
 
     public function comments() { return $this->hasMany(Comment::class); }
@@ -107,7 +120,7 @@ class Post extends Model
             'id'            => $this->id,
             'slug'          => $this->slug,
             'title'         => $this->title,
-            'excerpt'       => Str::limit(strip_tags($this->content), 110),
+            'excerpt'       => Str::limit($this->contentText(), 110),
             'image_url'     => $this->image ? Storage::url($this->image) : null,
             'category'      => $this->category->name,
             'categories'    => $this->categoryNames(),
