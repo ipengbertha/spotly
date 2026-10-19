@@ -12,6 +12,8 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\BookmarkController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\CommentLikeController;
+use App\Http\Controllers\CommentReportController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicController;
@@ -22,6 +24,7 @@ use App\Http\Controllers\PostShowController;
 use App\Http\Controllers\ReactionController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\FeedController;
+use App\Http\Controllers\User\HistoryController;
 use App\Http\Controllers\User\LikedController;
 use App\Http\Controllers\User\PostController;
 use App\Http\Controllers\User\SavedController;
@@ -31,7 +34,7 @@ use Illuminate\Support\Facades\Route;
 // Halaman publik
 Route::get('/', [PublicController::class, 'home'])->name('home');
 
-//Detail admin
+// Detail postingan (publik)
 Route::get('/posts/{post:slug}', PostShowController::class)->name('posts.show');
 
 // Profil publik penulis (siswa): bisa dibuka tamu
@@ -52,13 +55,17 @@ Route::post('/posts/{post}/reaction', [ReactionController::class, 'store'])
     ->middleware(['auth', EnsureUserIsActive::class, 'role:user'])
     ->name('posts.reaction');
 
-// Komentar: hanya siswa yang menulis dan menghapus komentarnya sendiri.
+// Komentar: hanya siswa yang menulis, mengedit, dan menghapus komentarnya sendiri.
 // Tamu diarahkan ke login, admin mendapat 403 (admin menghapus lewat /admin/comments).
 // Batas kirim 5 per menit dicek di CommentController@store.
 Route::middleware(['auth', EnsureUserIsActive::class, 'role:user'])->group(function () {
     Route::post('/posts/{post}/comments', [CommentController::class, 'store'])->name('posts.comments.store');
     Route::patch('/posts/{post}/comments-setting', [CommentController::class, 'updateSetting'])->name('posts.comments.setting');
+    Route::patch('/comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
+    // Jempol dan laporan di komentar orang lain
+    Route::post('/comments/{comment}/like', [CommentLikeController::class, 'toggle'])->name('comments.like');
+    Route::post('/comments/{comment}/report', [CommentReportController::class, 'store'])->name('comments.report');
 });
 
 // Laporan: siswa melaporkan postingan tayang, lalu melihat hasilnya. Admin dan tamu ditolak.
@@ -96,7 +103,6 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
 });
 
 // Pengaturan: bisa dibuka user dan admin
-// Pengaturan: bisa dibuka user dan admin
 Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     // POST (bukan PATCH) karena form membawa file foto
@@ -121,6 +127,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     Route::get('/comments', [AdminCommentController::class, 'index'])->name('comments.index');
     Route::delete('/comments/{comment}', [AdminCommentController::class, 'destroy'])->name('comments.destroy');
+    Route::post('/comments/{comment}/dismiss-reports', [AdminCommentController::class, 'dismissReports'])->name('comments.dismiss-reports');
 
     Route::get('/posts', [AdminPostController::class, 'index'])->name('posts.index');
     Route::patch('/posts/{post}/expiry', [AdminPostController::class, 'updateExpiry'])->name('posts.expiry');
@@ -151,4 +158,8 @@ Route::middleware(['auth', EnsureUserIsActive::class, 'role:user'])->prefix('use
 
     Route::get('/disukai', [LikedController::class, 'index'])->name('liked');
     Route::get('/tersimpan', [SavedController::class, 'index'])->name('saved');
+
+    // Riwayat bacaan: daftar artikel yang pernah dibuka, dan hapus semua riwayat
+    Route::get('/riwayat', [HistoryController::class, 'index'])->name('history');
+    Route::delete('/riwayat', [HistoryController::class, 'destroy'])->name('history.clear');
 });

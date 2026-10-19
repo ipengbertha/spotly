@@ -1,8 +1,9 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
 import Avatar from './Avatar';
 import CommentIcon from './CommentIcon';
 import ConfirmDialog from './ConfirmDialog';
+import CommentMenu, { CommentLikeButton } from './CommentMenu';
 
 const MAX = 500;
 // Jorokan balasan dibatasi 3 tingkat. Balasan yang lebih dalam tetap sejajar dengan tingkat 3
@@ -65,6 +66,43 @@ function CommentForm({ postId, parentId = null, replyTo = null, onDone, onCancel
     );
 }
 
+// Kotak mengedit komentar sendiri (dibuka dari menu titik tiga). Dipasang hanya saat mengedit,
+// jadi isinya selalu mulai dari komentar yang tersimpan.
+function CommentEditForm({ comment, onDone }) {
+    const form = useForm({ content: comment.content });
+    const fieldId = useId();
+
+    const submit = (e) => {
+        e.preventDefault();
+        form.patch(`/comments/${comment.id}`, { preserveScroll: true, onSuccess: onDone });
+    };
+
+    const length = form.data.content.length;
+
+    return (
+        <form onSubmit={submit} className="mt-1 space-y-2">
+            <label htmlFor={fieldId} className="sr-only">Edit komentar</label>
+            <textarea id={fieldId} rows={3} maxLength={MAX} value={form.data.content} autoFocus
+                onChange={(e) => form.setData('content', e.target.value)}
+                className="w-full resize-none rounded-2xl border border-ink/15 px-4 py-3 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20" />
+            {form.errors.content && <p className="text-sm text-brand">{form.errors.content}</p>}
+            <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-ink/50">{length}/{MAX}</p>
+                <div className="flex items-center gap-2">
+                    <button type="button" onClick={onDone}
+                        className="rounded-full border border-ink/20 px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5">
+                        Batal
+                    </button>
+                    <button type="submit" disabled={form.processing || length < 2}
+                        className="rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
+                        Simpan
+                    </button>
+                </div>
+            </div>
+        </form>
+    );
+}
+
 // Saklar untuk penulis postingan: mematikan / menyalakan komentar baru.
 function CommentsSwitch({ post }) {
     const [busy, setBusy] = useState(false);
@@ -99,8 +137,9 @@ function CommentsSwitch({ post }) {
 }
 
 // Satu komentar beserta balasannya (rekursif). depth 0 = komentar utama.
-function CommentNode({ c, depth, post, onDelete }) {
+function CommentNode({ c, depth, post, viewer, onDelete }) {
     const [replying, setReplying] = useState(false);
+    const [editing, setEditing] = useState(false);
     const [open, setOpen] = useState(true);
     const hasReplies = c.replies.length > 0;
     const small = depth > 0;
@@ -110,7 +149,7 @@ function CommentNode({ c, depth, post, onDelete }) {
             <div className="flex gap-3">
                 <Avatar src={c.author_avatar} name={c.author} className={small ? 'h-7 w-7 text-xs' : 'h-9 w-9 text-sm'} />
                 <div className="min-w-0 flex-1">
-                                        <div className="flex flex-wrap items-baseline gap-x-2">
+                    <div className="flex flex-wrap items-baseline gap-x-2">
                         {c.author_id
                             ? <Link href={`/profil/${c.author_id}`}
                                 className="text-sm font-semibold text-ink hover:text-brand hover:underline">
@@ -121,17 +160,23 @@ function CommentNode({ c, depth, post, onDelete }) {
                             <span className="text-xs text-ink/45">@{c.author_username}</span>
                         )}
                         <span className="text-xs text-ink/50">{formatTime(c.created_at)}</span>
+                        {c.edited && <span className="text-xs text-ink/40">(diedit)</span>}
                     </div>
                     {depth >= 2 && (c.reply_to_username || c.reply_to) && (
                         <p className="mt-0.5 text-xs font-semibold text-grape">
                             &#8618; Membalas {c.reply_to_username ? `@${c.reply_to_username}` : c.reply_to}
                         </p>
                     )}
-                    <p className="mt-1 whitespace-pre-line wrap-break-word text-sm leading-relaxed text-ink/90">
-                        {c.content}
-                    </p>
+                    {editing ? (
+                        <CommentEditForm comment={c} onDone={() => setEditing(false)} />
+                    ) : (
+                        <p className="mt-1 whitespace-pre-line wrap-break-word text-sm leading-relaxed text-ink/90">
+                            {c.content}
+                        </p>
+                    )}
 
                     <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold text-ink/60">
+                        <CommentLikeButton comment={c} viewer={viewer} />
                         {post.can_comment && (
                             <button type="button" onClick={() => setReplying((v) => !v)}
                                 aria-expanded={replying}
@@ -156,18 +201,13 @@ function CommentNode({ c, depth, post, onDelete }) {
                         </div>
                     )}
                 </div>
-                {c.delete_url && (
-                    <button type="button" onClick={() => onDelete(c)}
-                        className="h-fit shrink-0 rounded-full border border-brand/40 px-3 py-1 text-xs font-semibold text-brand hover:bg-brand/10">
-                        Hapus
-                    </button>
-                )}
+                <CommentMenu comment={c} reasons={post.report_reasons} onEdit={() => setEditing(true)} onDelete={onDelete} />
             </div>
 
             {hasReplies && open && (
                 <ul className={`mt-4 space-y-4 ${depth < MAX_INDENT ? 'ml-4 border-l-2 border-ink/10 pl-4 sm:ml-12' : ''}`}>
                     {c.replies.map((r) => (
-                        <CommentNode key={r.id} c={r} depth={depth + 1} post={post} onDelete={onDelete} />
+                        <CommentNode key={r.id} c={r} depth={depth + 1} post={post} viewer={viewer} onDelete={onDelete} />
                     ))}
                 </ul>
             )}
@@ -188,6 +228,30 @@ function deleteMessage(viewer, target) {
 
 export default function CommentSection({ post, viewer }) {
     const [target, setTarget] = useState(null);
+    // Daftar komentar awalnya tertutup supaya halaman tidak kepanjangan.
+    // Form menulis komentar tetap terlihat.
+    const [showList, setShowList] = useState(false);
+
+    // Pindah ke postingan lain: daftar kembali tertutup (kecuali alamatnya memang menuju #komentar)
+    useEffect(() => {
+        setShowList(window.location.hash === '#komentar');
+    }, [post.id]);
+
+    // Ikon 💬 di baris reaksi (tautan ke #komentar) ikut membuka daftar
+    useEffect(() => {
+        const onClick = (e) => {
+            if (e.target.closest?.('a[href="#komentar"]')) setShowList(true);
+        };
+        const onHash = () => {
+            if (window.location.hash === '#komentar') setShowList(true);
+        };
+        document.addEventListener('click', onClick);
+        window.addEventListener('hashchange', onHash);
+        return () => {
+            document.removeEventListener('click', onClick);
+            window.removeEventListener('hashchange', onHash);
+        };
+    }, []);
 
     const confirmDelete = () => {
         const url = target.delete_url;
@@ -205,7 +269,8 @@ export default function CommentSection({ post, viewer }) {
             {post.can_toggle_comments && <CommentsSwitch post={post} />}
 
             <div className="mt-4">
-                {post.can_comment && <CommentForm postId={post.id} />}
+                {/* Setelah mengirim komentar baru, daftar dibuka supaya komentarnya langsung terlihat */}
+                {post.can_comment && <CommentForm postId={post.id} onDone={() => setShowList(true)} />}
 
                 {!post.comments_enabled && viewer !== 'admin' && (
                     <p className="rounded-2xl bg-grape/10 px-4 py-3 text-sm text-ink ring-1 ring-grape/20">
@@ -233,11 +298,26 @@ export default function CommentSection({ post, viewer }) {
                     {post.comments_enabled ? 'Belum ada komentar. Jadilah yang pertama!' : 'Belum ada komentar.'}
                 </p>
             ) : (
-                <ul className="mt-6 divide-y divide-ink/5">
-                    {post.comments.map((c) => (
-                        <CommentNode key={c.id} c={c} depth={0} post={post} onDelete={setTarget} />
-                    ))}
-                </ul>
+                <>
+                    <button type="button" onClick={() => setShowList((v) => !v)}
+                        aria-expanded={showList} aria-controls="daftar-komentar"
+                        className="mt-6 flex w-full items-center justify-center gap-2 rounded-full border-2 border-peach bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-peach/40">
+                        {showList ? 'Sembunyikan komentar' : `Lihat ${post.comments_count} komentar`}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                            strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+                            className={`h-4 w-4 transition-transform ${showList ? 'rotate-180' : ''}`}>
+                            <path d="M6 9l6 6 6-6" />
+                        </svg>
+                    </button>
+
+                    {showList && (
+                        <ul id="daftar-komentar" className="mt-6 divide-y divide-ink/5">
+                            {post.comments.map((c) => (
+                                <CommentNode key={c.id} c={c} depth={0} post={post} viewer={viewer} onDelete={setTarget} />
+                            ))}
+                        </ul>
+                    )}
+                </>
             )}
 
             <ConfirmDialog open={!!target} title="Hapus komentar?"

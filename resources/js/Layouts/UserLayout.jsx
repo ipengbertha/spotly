@@ -15,6 +15,7 @@ const ICONS = {
     dash:   'M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z',
     heart:  'M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 00-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 000-7.8z',
     mark:   'M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z',
+    clock:  'M12 3a9 9 0 100 18 9 9 0 000-18zM12 7v5l3 2',
     bell:   'M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0',
     user:   'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z',
     gear:   'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z',
@@ -83,6 +84,7 @@ export default function UserLayout({ children }) {
     const isMine = u.pathname.startsWith('/user/posts') && !isCreate;
     const isLiked = u.pathname === '/user/disukai';
     const isSaved = u.pathname === '/user/tersimpan';
+    const isHistory = u.pathname === '/user/riwayat';
     const isNotif = u.pathname.startsWith('/notifications');
     const isSettings = u.pathname.startsWith('/settings');
     const unread = props.unreadNotifications ?? 0;
@@ -116,6 +118,7 @@ export default function UserLayout({ children }) {
             { icon: 'doc',   label: 'Postingan Saya', href: '/user/posts', active: isMine },
             { icon: 'heart', label: 'Disukai',        href: '/user/disukai', active: isLiked },
             { icon: 'mark',  label: 'Tersimpan',      href: '/user/tersimpan', active: isSaved },
+            { icon: 'clock', label: 'Riwayat',        href: '/user/riwayat', active: isHistory },
         ]],
         ['Akun', [
             { icon: 'bell',  label: 'Notifikasi',     href: '/notifications', active: isNotif, badge: unread },

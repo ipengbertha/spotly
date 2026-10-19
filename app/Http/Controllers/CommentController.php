@@ -93,6 +93,38 @@ class CommentController extends Controller
         return back();
     }
 
+    // Siswa mengedit komentarnya sendiri, hanya selama belum lewat 24 jam sejak dikirim.
+    public function update(Request $request, Comment $comment)
+    {
+        // Postingan yang tidak tayang menjawab 404 untuk semua aksi komentar
+        abort_unless($comment->post->isActive(), 404);
+        abort_unless($comment->user_id === $request->user()->id, 403);
+
+        $data = $request->validate([
+            'content' => ['required', 'string', 'min:2', 'max:500'],
+        ], [
+            'content.required' => 'Komentar tidak boleh kosong.',
+            'content.min'      => 'Komentar minimal 2 karakter.',
+            'content.max'      => 'Komentar maksimal 500 karakter.',
+        ]);
+
+        // Batas waktu dicek di server (bukan hanya disembunyikan di tampilan)
+        if (! $comment->isEditable()) {
+            return back()->withErrors([
+                'content' => 'Komentar hanya bisa diedit dalam ' . Comment::EDIT_WINDOW_HOURS . ' jam setelah dikirim.',
+            ]);
+        }
+
+        // Isi tidak berubah: tidak perlu ditandai "diedit"
+        if (trim($data['content']) === trim($comment->content)) {
+            return back();
+        }
+
+        $comment->forceFill(['content' => $data['content'], 'edited_at' => now()])->save();
+
+        return back();
+    }
+
     // Siswa menghapus komentarnya sendiri. (Admin memakai Admin\CommentController.)
     public function destroy(Request $request, Comment $comment)
     {

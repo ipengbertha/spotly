@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Comment;
+use App\Models\CommentLike;
+use App\Models\CommentReport;
 use App\Models\Post;
 use App\Models\PostReaction;
+use App\Models\ReadingHistory;
 use App\Models\Report;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -29,6 +32,15 @@ class PostShowController extends Controller
         $reported      = $viewer !== null
             && $post->reports()->where('user_id', $viewer->id)->exists();
 
+        // Catat riwayat bacaan: hanya siswa, hanya postingan yang sedang tayang,
+        // dan bukan artikel miliknya sendiri. Membuka lagi hanya memperbarui waktunya.
+        if ($isStudent && ! $isOwner && $post->isActive()) {
+            ReadingHistory::updateOrCreate(
+                ['user_id' => $viewer->id, 'post_id' => $post->id],
+                ['last_read_at' => now()],
+            );
+        }
+
         // Komentar hanya dibuka untuk postingan yang sedang tayang.
         // Bentuknya pohon: komentar utama (terbaru di atas), masing-masing membawa balasannya
         // (terlama di atas supaya percakapan terbaca urut). Balasan bisa bertingkat tanpa batas;
@@ -37,17 +49,28 @@ class PostShowController extends Controller
         // Menghapus komentar ikut menghapus semua balasan di bawahnya.
         $comments = collect();
         if ($post->isActive()) {
-            $byParent = $post->comments()->with('user:id,name,username,avatar')
-                ->orderBy('created_at')->orderBy('id')->get()
-                ->groupBy(fn (Comment $c) => $c->parent_id ?? 0);
+            $all = $post->comments()->with('user:id,name,username,avatar')->withCount('likes')
+                ->orderBy('created_at')->orderBy('id')->get();
+            $byParent = $all->groupBy(fn (Comment $c) => $c->parent_id ?? 0);
 
-            $build = function (int $parentId, ?string $parentName, ?string $parentUsername, bool $newestFirst) use (&$build, $byParent, $viewer, $isAdmin, $isStudent) {
+            // Komentar yang sudah diberi jempol / dilaporkan oleh siswa yang sedang membuka halaman
+            $likedIds = $reportedIds = [];
+            if ($isStudent) {
+                $likedIds = CommentLike::where('user_id', $viewer->id)->whereIn('comment_id', $all->pluck('id'))
+                    ->pluck('comment_id')->flip()->all();
+                $reportedIds = CommentReport::where('user_id', $viewer->id)->whereIn('comment_id', $all->pluck('id'))
+                    ->pluck('comment_id')->flip()->all();
+            }
+
+            $build = function (int $parentId, ?string $parentName, ?string $parentUsername, bool $newestFirst) use (&$build, $byParent, $viewer, $isAdmin, $isStudent, $likedIds, $reportedIds) {
                 $list = $byParent->get($parentId, collect());
                 if ($newestFirst) {
                     $list = $list->reverse();
                 }
 
-                return $list->map(function (Comment $c) use (&$build, $parentName, $parentUsername, $viewer, $isAdmin, $isStudent) {
+                return $list->map(function (Comment $c) use (&$build, $parentName, $parentUsername, $viewer, $isAdmin, $isStudent, $likedIds, $reportedIds) {
+                    $isMine = $isStudent && $c->user_id === $viewer->id;
+
                     $replies = $build($c->id, $c->user?->name, $c->user?->username, false);
 
                     return [
@@ -58,6 +81,17 @@ class PostShowController extends Controller
                         'author_username' => $c->user?->username,
                         'author_avatar' => $c->user?->avatar ? '/storage/' . $c->user->avatar : null,
                         'created_at'    => $c->created_at->toIso8601String(),
+                        // Komentar yang isinya pernah diubah penulisnya diberi tanda "(diedit)"
+                        'edited'        => $c->edited_at !== null,
+                        'is_mine'       => $isMine,
+                        // Edit hanya untuk komentar sendiri dan hanya selama belum lewat 24 jam
+                        'can_edit'      => $isMine && $c->isEditable(),
+                        'likes_count'   => $c->likes_count,
+                        'liked'         => isset($likedIds[$c->id]),
+                        // Jempol dan laporan hanya untuk komentar orang lain
+                        'can_like'      => $isStudent && ! $isMine,
+                        'can_report'    => $isStudent && ! $isMine && ! isset($reportedIds[$c->id]),
+                        'reported'      => isset($reportedIds[$c->id]),
                         'reply_to'      => $parentName,
                         'reply_to_username' => $parentUsername,
                         'replies'       => $replies,
@@ -73,6 +107,28 @@ class PostShowController extends Controller
             };
 
             $comments = $build(0, null, null, true);
+        }
+
+        // Artikel terkait: postingan tayang lain yang berbagi minimal satu kategori
+        // (utama atau tambahan), terbaru di atas. Hanya dihitung untuk postingan yang tayang.
+        $related = collect();
+        if ($post->isActive()) {
+            $categoryIds = $post->extraCategories->pluck('id')->push($post->category_id)->unique()->values();
+
+            $related = Post::active()
+                ->with(['category:id,name', 'user:id,name,avatar', 'extraCategories'])
+                ->withLikes($viewer?->id)
+                ->where('posts.id', '!=', $post->id)
+                ->where(function ($q) use ($categoryIds) {
+                    $q->whereIn('posts.category_id', $categoryIds)
+                      ->orWhereHas('extraCategories', fn ($c) => $c->whereIn('categories.id', $categoryIds));
+                })
+                ->orderByDesc('posts.published_at')
+                ->orderByDesc('posts.id')
+                ->limit(5)
+                ->get()
+                ->map(fn (Post $p) => $p->toCard())
+                ->values();
         }
 
         $reactionCounts = $post->reactions()
@@ -129,6 +185,7 @@ class PostShowController extends Controller
                     ? "/user/posts/{$post->id}/edit"
                     : null,
             ],
+            'related' => $related,
             'viewer' => $isAdmin ? 'admin' : ($viewer ? 'user' : 'guest'),
         ]);
     }

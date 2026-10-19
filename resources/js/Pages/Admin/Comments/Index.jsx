@@ -7,14 +7,27 @@ import ConfirmDialog from '../../../Components/ConfirmDialog';
 const pageLabel = (label) =>
     label.replace('&laquo; Previous', '&laquo; Sebelumnya').replace('Next &raquo;', 'Berikutnya &raquo;');
 
-export default function Index({ comments, filters }) {
-    const [target, setTarget] = useState(null);
+export default function Index({ comments, filters, counts }) {
+    const [target, setTarget] = useState(null);       // komentar yang akan dihapus
+    const [dismissing, setDismissing] = useState(null); // komentar yang laporannya akan diabaikan
+    const reportedOnly = filters.filter === 'reported';
 
     const confirmDelete = () => {
         const id = target.id;
         setTarget(null);
         router.delete(`/admin/comments/${id}`, { preserveScroll: true });
     };
+
+    const confirmDismiss = () => {
+        const id = dismissing.id;
+        setDismissing(null);
+        router.post(`/admin/comments/${id}/dismiss-reports`, {}, { preserveScroll: true });
+    };
+
+    const tabs = [
+        { key: 'all', label: 'Semua', href: '/admin/comments', count: counts.all, active: !reportedOnly },
+        { key: 'reported', label: 'Dilaporkan', href: '/admin/comments?filter=reported', count: counts.reported, active: reportedOnly },
+    ];
 
     return (
         <AdminLayout title="Komentar">
@@ -28,8 +41,26 @@ export default function Index({ comments, filters }) {
                 <p>
                     Komentar siswa tampil <b className="text-grape">langsung tanpa persetujuan</b>, jadi di sinilah
                     tempat memeriksanya. Kamu bisa <b className="text-grape">menghapus komentar apa pun</b>, termasuk
-                    di postingan yang sudah tidak tayang.
+                    di postingan yang sudah tidak tayang. Komentar yang <b className="text-grape">dilaporkan siswa</b>{' '}
+                    ada di tab Dilaporkan: hapus kalau melanggar, atau abaikan laporannya kalau tidak beralasan.
                 </p>
+            </div>
+
+            {/* Tab Semua / Dilaporkan */}
+            <div className="mb-4 flex flex-wrap gap-2">
+                {tabs.map((t) => (
+                    <Link key={t.key} href={t.href} preserveScroll
+                        className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                            t.active ? 'bg-ink text-white' : 'bg-white text-ink/70 ring-1 ring-ink/10 hover:bg-peach/40'}`}>
+                        {t.label}
+                        <span className={`rounded-full px-2 py-0.5 text-xs ${
+                            t.active
+                                ? 'bg-white/20 text-white'
+                                : t.key === 'reported' && t.count > 0 ? 'bg-brand text-white' : 'bg-ink/10 text-ink/60'}`}>
+                            {t.count}
+                        </span>
+                    </Link>
+                ))}
             </div>
 
             <div className="overflow-x-auto rounded-3xl bg-white shadow-md ring-1 ring-ink/5">
@@ -47,7 +78,9 @@ export default function Index({ comments, filters }) {
                         {comments.data.length === 0 && (
                             <tr>
                                 <td colSpan={5} className="p-8 text-center text-ink/60">
-                                    {filters.q ? 'Tidak ada komentar yang cocok.' : 'Belum ada komentar.'}
+                                    {reportedOnly
+                                        ? 'Tidak ada komentar yang menunggu ditinjau.'
+                                        : filters.q ? 'Tidak ada komentar yang cocok.' : 'Belum ada komentar.'}
                                 </td>
                             </tr>
                         )}
@@ -58,6 +91,23 @@ export default function Index({ comments, filters }) {
                                         <p className="mb-0.5 text-xs font-semibold text-grape">&#8618; membalas {c.reply_to}</p>
                                     )}
                                     <p className="line-clamp-3 whitespace-pre-line wrap-break-word">{c.content}</p>
+
+                                    {c.pending_reports > 0 && (
+                                        <div className="mt-2 rounded-xl bg-brand/10 px-3 py-2 text-xs text-ink ring-1 ring-brand/20">
+                                            <p className="font-semibold text-brand">
+                                                {c.pending_reports} laporan menunggu
+                                            </p>
+                                            <ul className="mt-1 space-y-1">
+                                                {c.reports.map((r) => (
+                                                    <li key={r.id}>
+                                                        <span className="font-semibold">{r.reporter ?? 'Siswa'}</span>
+                                                        {': '}{r.reason_label}
+                                                        {r.note && <span className="text-ink/70"> &mdash; {r.note}</span>}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
                                 </td>
                                 <td className="whitespace-nowrap px-5 py-3 text-ink/70">
                                     {c.author_id
@@ -74,10 +124,18 @@ export default function Index({ comments, filters }) {
                                 </td>
                                 <td className="whitespace-nowrap px-5 py-3 text-ink/70" title={c.date}>{c.time}</td>
                                 <td className="whitespace-nowrap px-5 py-3">
-                                    <button onClick={() => setTarget(c)}
-                                        className="rounded-full border border-brand/40 px-3 py-1 text-xs font-semibold text-brand hover:bg-brand/10">
-                                        Hapus
-                                    </button>
+                                    <div className="flex flex-wrap gap-2">
+                                        {c.pending_reports > 0 && (
+                                            <button onClick={() => setDismissing(c)}
+                                                className="rounded-full border border-ink/20 px-3 py-1 text-xs font-semibold text-ink hover:bg-ink/5">
+                                                Abaikan laporan
+                                            </button>
+                                        )}
+                                        <button onClick={() => setTarget(c)}
+                                            className="rounded-full border border-brand/40 px-3 py-1 text-xs font-semibold text-brand hover:bg-brand/10">
+                                            Hapus
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -112,6 +170,13 @@ export default function Index({ comments, filters }) {
                     : ''}
                 confirmLabel="Ya, hapus"
                 onConfirm={confirmDelete} onCancel={() => setTarget(null)} />
+
+            <ConfirmDialog open={!!dismissing} title="Abaikan laporan?"
+                message={dismissing
+                    ? `Semua laporan untuk komentar dari ${dismissing.author ?? 'siswa'} ditandai selesai dan komentarnya tetap tampil.`
+                    : ''}
+                confirmLabel="Ya, abaikan"
+                onConfirm={confirmDismiss} onCancel={() => setDismissing(null)} />
         </AdminLayout>
     );
 }
