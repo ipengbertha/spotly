@@ -1,7 +1,70 @@
+import { useRef, useState } from 'react';
 import { useEditor, useEditorState, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
 import { Placeholder } from '@tiptap/extensions';
+import ImageExtension from '@tiptap/extension-image';
+import Youtube from '@tiptap/extension-youtube';
+
+const UPLOAD_URL = '/user/post-images';
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+
+// Video yang tersimpan berupa <div class="post-video"><iframe ...>, jadi editor perlu
+// tahu cara membacanya kembali saat artikel dibuka untuk diedit.
+const SafeYoutube = Youtube.extend({
+    parseHTML() {
+        return [
+            { tag: 'div[data-youtube-video] iframe' },
+            { tag: 'iframe[src^="https://www.youtube-nocookie.com/embed/"]' },
+        ];
+    },
+});
+
+// Ambil ID video dari tautan YouTube. Selain YouTube asli, hasilnya null (ditolak).
+function youtubeId(input) {
+    let url;
+    try {
+        url = new URL(/^https?:\/\//i.test(input) ? input : `https://${input}`);
+    } catch {
+        return null;
+    }
+    const host = url.hostname.toLowerCase();
+    let id = null;
+
+    if (host === 'youtu.be') {
+        id = url.pathname.slice(1);
+    } else if (['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(host)) {
+        if (url.pathname === '/watch') {
+            id = url.searchParams.get('v');
+        } else {
+            const m = url.pathname.match(/^\/(embed|shorts|live)\/([^/]+)/);
+            id = m ? m[2] : null;
+        }
+    }
+    return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+}
+
+function getCookie(name) {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : '';
+}
+
+async function uploadImage(file) {
+    const body = new FormData();
+    body.append('image', file);
+
+    const res = await fetch(UPLOAD_URL, {
+        method: 'POST',
+        body,
+        credentials: 'same-origin',
+        headers: { 'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'), Accept: 'application/json' },
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status === 429) throw new Error('Terlalu banyak unggahan. Tunggu sebentar lalu coba lagi.');
+    if (!res.ok) throw new Error(data?.errors?.image?.[0] ?? data?.message ?? 'Gagal mengunggah gambar.');
+    return data.url;
+}
 
 // Tombol toolbar. onMouseDown + preventDefault supaya editor tidak kehilangan pilihan teks.
 function Btn({ label, title, active, disabled, onClick }) {
@@ -18,6 +81,10 @@ function Btn({ label, title, active, disabled, onClick }) {
 const Sep = () => <span aria-hidden="true" className="mx-1 h-5 w-px bg-ink/15" />;
 
 export default function RichTextEditor({ value, onChange, placeholder = 'Tulis isi postingan' }) {
+    const fileRef = useRef(null);
+    const [uploading, setUploading] = useState(false);
+    const [notice, setNotice] = useState('');
+
     const editor = useEditor({
         content: value || '',
         extensions: [
@@ -32,6 +99,8 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Tulis i
             TableRow,
             TableHeader,
             TableCell,
+            ImageExtension.configure({ inline: false, allowBase64: false }),
+            SafeYoutube.configure({ nocookie: true, allowFullscreen: true, width: 640, height: 360 }),
             Placeholder.configure({ placeholder }),
         ],
         editorProps: {
@@ -63,26 +132,65 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Tulis i
     const run = () => editor.chain().focus();
 
     const setLink = () => {
-    const previous = editor.getAttributes('link').href ?? 'https://';
-    const url = window.prompt('Alamat tautan (kosongkan untuk menghapus tautan):', previous);
-    if (url === null) return;
+        const previous = editor.getAttributes('link').href ?? 'https://';
+        const url = window.prompt('Alamat tautan (kosongkan untuk menghapus tautan):', previous);
+        if (url === null) return;
 
-    const raw = url.trim();
-    if (raw === '' || raw === 'https://') {
-        run().extendMarkRange('link').unsetLink().run();
-        return;
-    }
+        const raw = url.trim();
+        if (raw === '' || raw === 'https://') {
+            run().extendMarkRange('link').unsetLink().run();
+            return;
+        }
 
-    // Tanpa awalan, anggap https:// supaya tidak jadi tautan relatif
-    const href = /^(https?:\/\/|mailto:)/i.test(raw) ? raw : `https://${raw}`;
+        // Tanpa awalan, anggap https:// supaya tidak jadi tautan relatif
+        const href = /^(https?:\/\/|mailto:)/i.test(raw) ? raw : `https://${raw}`;
 
-    if (editor.state.selection.empty && !editor.isActive('link')) {
-        // Tidak ada teks terpilih: sisipkan alamatnya sebagai teks bertautan
-        run().insertContent({ type: 'text', text: href, marks: [{ type: 'link', attrs: { href } }] }).run();
-    } else {
-        run().extendMarkRange('link').setLink({ href }).run();
-    }
-};
+        if (editor.state.selection.empty && !editor.isActive('link')) {
+            // Tidak ada teks terpilih: sisipkan alamatnya sebagai teks bertautan
+            run().insertContent({ type: 'text', text: href, marks: [{ type: 'link', attrs: { href } }] }).run();
+        } else {
+            run().extendMarkRange('link').setLink({ href }).run();
+        }
+    };
+
+    const onPickImage = async (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = ''; // supaya file yang sama bisa dipilih lagi
+        if (!file) return;
+
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+            setNotice('Gambar harus berformat JPG, PNG, atau WEBP.');
+            return;
+        }
+        if (file.size > MAX_IMAGE_BYTES) {
+            setNotice('Ukuran gambar maksimal 2 MB.');
+            return;
+        }
+
+        setNotice('');
+        setUploading(true);
+        try {
+            const url = await uploadImage(file);
+            run().setImage({ src: url }).run();
+        } catch (err) {
+            setNotice(err.message);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const setVideo = () => {
+        const raw = window.prompt('Tempel tautan video YouTube:');
+        if (raw === null || raw.trim() === '') return;
+
+        const id = youtubeId(raw.trim());
+        if (!id) {
+            setNotice('Tautan ditolak. Hanya tautan YouTube yang diterima.');
+            return;
+        }
+        setNotice('');
+        run().setYoutubeVideo({ src: `https://www.youtube.com/watch?v=${id}` }).run();
+    };
 
     return (
         <div className="post-editor rounded-xl border border-ink/15 focus-within:border-grape focus-within:ring-2 focus-within:ring-grape/20">
@@ -101,10 +209,21 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Tulis i
                 <Btn label="Tautan" active={s.link} onClick={setLink} />
                 <Btn label="Tabel" title="Sisipkan tabel 3x3" active={s.table}
                     onClick={() => run().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} />
+                <Btn label={uploading ? 'Mengunggah…' : 'Gambar'} title="Sisipkan gambar (JPG, PNG, WEBP, maks 2 MB)"
+                    disabled={uploading} onClick={() => fileRef.current?.click()} />
+                <Btn label="Video" title="Sisipkan video YouTube" onClick={setVideo} />
                 <Sep />
                 <Btn label="↶" title="Urungkan" disabled={!s.canUndo} onClick={() => run().undo().run()} />
                 <Btn label="↷" title="Ulangi" disabled={!s.canRedo} onClick={() => run().redo().run()} />
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp"
+                    className="hidden" onChange={onPickImage} />
             </div>
+
+            {notice && (
+                <p role="alert" className="border-b border-ink/10 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600">
+                    {notice}
+                </p>
+            )}
 
             {s.table && (
                 <div className="flex flex-wrap items-center gap-0.5 border-b border-ink/10 bg-grape/5 px-2 py-1">

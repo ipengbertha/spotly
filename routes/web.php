@@ -22,6 +22,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\PostShowController;
 use App\Http\Controllers\ReactionController;
+use App\Http\Controllers\PostImageController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\FeedController;
 use App\Http\Controllers\User\HistoryController;
@@ -155,6 +156,11 @@ Route::middleware(['auth', EnsureUserIsActive::class, 'role:user'])->prefix('use
 
     Route::resource('posts', PostController::class)->except(['show']);
     Route::post('posts/{post}/submit', [PostController::class, 'submit'])->name('posts.submit');
+
+    // Unggah gambar di dalam isi artikel (editor). Maksimal 20 unggahan per menit.
+    Route::post('/post-images', [PostImageController::class, 'store'])
+        ->middleware('throttle:20,1')
+        ->name('post-images.store');
 
     Route::get('/disukai', [LikedController::class, 'index'])->name('liked');
     Route::get('/tersimpan', [SavedController::class, 'index'])->name('saved');
