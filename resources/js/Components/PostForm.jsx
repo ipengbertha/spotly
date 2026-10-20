@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useForm } from '@inertiajs/react';
 import ConfirmDialog, { SUBMIT_WARNING } from './ConfirmDialog';
 import RichTextEditor from './RichTextEditor';
+import PostPreview from './PostPreview';
 
 const MAX_EXTRA = 2;
 const AUTOSAVE_DELAY = 3000; // simpan 3 detik setelah berhenti mengetik
@@ -29,6 +30,7 @@ export default function PostForm({ categories, post = null }) {
         _method: post ? 'put' : 'post', // upload file butuh POST + method spoofing
     });
     const [confirming, setConfirming] = useState(false);
+    const [previewing, setPreviewing] = useState(false);
     const [autosave, setAutosave] = useState({ state: 'idle', text: '' });
 
     // ID postingan: dari props (mode edit), atau dari autosave pertama (mode buat)
@@ -36,6 +38,18 @@ export default function PostForm({ categories, post = null }) {
     const inflightRef = useRef(null);       // autosave yang sedang berjalan
     const submittingRef = useRef(false);    // true saat Simpan/Kirim manual berjalan
     const lastSavedRef = useRef(snapshotOf(data));
+
+    // Gambar sampul untuk pratinjau: file yang baru dipilih, atau gambar yang sudah tersimpan
+    const [coverPreview, setCoverPreview] = useState(null);
+    useEffect(() => {
+        if (!data.image) {
+            setCoverPreview(null);
+            return;
+        }
+        const objectUrl = URL.createObjectURL(data.image);
+        setCoverPreview(objectUrl);
+        return () => URL.revokeObjectURL(objectUrl);
+    }, [data.image]);
 
     const sendWith = async (action) => {
         submittingRef.current = true;
@@ -138,6 +152,12 @@ export default function PostForm({ categories, post = null }) {
         .filter((k) => k.startsWith('extra_category_ids'))
         .map((k) => errors[k])[0];
 
+    // Nama kategori untuk pratinjau: utama dulu, lalu tambahan
+    const previewCategoryNames = [data.category_id, ...data.extra_category_ids]
+        .filter((id) => id !== '' && id !== null)
+        .map((id) => categories.find((c) => String(c.id) === String(id))?.name)
+        .filter(Boolean);
+
     return (
         <>
             <form onSubmit={(e) => { e.preventDefault(); sendWith('draft'); }}
@@ -219,6 +239,10 @@ export default function PostForm({ categories, post = null }) {
                         className="rounded-full border border-ink/20 px-5 py-2 text-sm font-semibold text-ink hover:bg-ink/5 disabled:opacity-50">
                         Simpan draft
                     </button>
+                    <button type="button" onClick={() => setPreviewing(true)}
+                        className="rounded-full bg-grape/10 px-5 py-2 text-sm font-semibold text-grape hover:bg-grape/20">
+                        Pratinjau
+                    </button>
                     <button type="button" disabled={processing} onClick={() => setConfirming(true)}
                         className="rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
                         Kirim untuk review
@@ -242,6 +266,15 @@ export default function PostForm({ categories, post = null }) {
                 confirmLabel="Ya, kirim"
                 onCancel={() => setConfirming(false)}
                 onConfirm={() => { setConfirming(false); sendWith('submit'); }}
+            />
+
+            <PostPreview
+                open={previewing}
+                onClose={() => setPreviewing(false)}
+                title={data.title}
+                content={data.content}
+                categoryNames={previewCategoryNames}
+                imageSrc={coverPreview ?? post?.image_url ?? null}
             />
         </>
     );

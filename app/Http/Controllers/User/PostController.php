@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use App\Support\PostHtml;
 use Inertia\Inertia;
 
 class PostController extends Controller
@@ -151,6 +153,18 @@ class PostController extends Controller
         $post->extraCategories()->sync($this->extraIds($data));
 
         return response()->json(['id' => $post->id]);
+    }
+
+    // Pratinjau: isi dibersihkan seperti saat disimpan, tapi tidak disimpan ke database.
+    public function preview(Request $request): JsonResponse
+    {
+        $request->validate([
+            'content' => ['nullable', 'string', 'max:60000'],
+        ]);
+
+        $html = PostHtml::render(PostHtml::clean((string) $request->input('content')));
+
+        return response()->json(['html' => $html]);
     }
 
     public function submit(Post $post)

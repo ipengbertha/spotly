@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Post;
 use App\Notifications\PostApproved;
 use App\Notifications\PostRejected;
+use App\Notifications\PostRevisionRequested;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -76,6 +77,30 @@ class ReviewController extends Controller
 
         if ($post->user?->wantsNotification('post_rejected')) {
             $post->user->notify(new PostRejected($post));
+        }
+
+        return redirect()->route('admin.reviews.index');
+    }
+
+        public function requestRevision(Request $request, Post $post)
+    {
+        if ($post->status !== Post::SUBMITTED) {
+            return back()->withErrors(['post' => 'Postingan ini sudah tidak menunggu review.']);
+        }
+
+        $data = $request->validate([
+            'revision_note' => ['required', 'string', 'min:10', 'max:500'],
+        ], [
+            'revision_note.required' => 'Catatan revisi wajib diisi.',
+            'revision_note.min'      => 'Catatan revisi minimal 10 karakter.',
+            'revision_note.max'      => 'Catatan revisi maksimal 500 karakter.',
+        ]);
+
+        $post->markRevisionRequested($data['revision_note']);
+
+        // Notifikasi memakai preferensi yang sama dengan penolakan
+        if ($post->user?->wantsNotification('post_rejected')) {
+            $post->user->notify(new PostRevisionRequested($post));
         }
 
         return redirect()->route('admin.reviews.index');

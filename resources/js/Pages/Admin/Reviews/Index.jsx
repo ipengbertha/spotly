@@ -27,17 +27,23 @@ function Modal({ title, onClose, children }) {
     );
 }
 
+const TEXTAREA =
+    'w-full rounded-xl border border-ink/15 px-3 py-2 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20';
+
 export default function Index({ posts }) {
     const { url } = usePage();
     const keyword = new URL(url, 'http://localhost').searchParams.get('q');
 
-    const [dialog, setDialog] = useState(null); // { type: 'view' | 'approve' | 'reject', post }
+    const [dialog, setDialog] = useState(null); // { type: 'view' | 'approve' | 'revision' | 'reject', post }
     const approve = useForm({ expired_at: defaultExpiry() });
+    const revision = useForm({ revision_note: '' });
     const reject = useForm({ rejection_reason: '' });
 
     const open = (type, post) => {
         approve.reset();
         approve.clearErrors();
+        revision.reset();
+        revision.clearErrors();
         reject.reset();
         reject.clearErrors();
         setDialog({ type, post });
@@ -47,6 +53,14 @@ export default function Index({ posts }) {
     const submitApprove = (e) => {
         e.preventDefault();
         approve.post(`/admin/reviews/${dialog.post.id}/approve`, {
+            preserveScroll: true,
+            onSuccess: close,
+        });
+    };
+
+    const submitRevision = (e) => {
+        e.preventDefault();
+        revision.post(`/admin/reviews/${dialog.post.id}/revision`, {
             preserveScroll: true,
             onSuccess: close,
         });
@@ -71,8 +85,9 @@ export default function Index({ posts }) {
                 </span>
                 <p>
                     Postingan siswa yang menunggu keputusanmu. <b className="text-grape">Setujui</b> untuk
-                    menayangkannya di mading, atau <b className="text-grape">tolak</b> dengan alasan agar
-                    penulis bisa memperbaikinya.
+                    menayangkannya di mading, <b className="text-grape">minta revisi</b> kalau masih bisa
+                    diperbaiki penulis, atau <b className="text-grape">tolak</b> kalau tidak layak tayang
+                    (penolakan bersifat final).
                 </p>
             </div>
 
@@ -114,6 +129,10 @@ export default function Index({ posts }) {
                                         <button onClick={() => open('approve', p)}
                                             className="rounded-full bg-grape px-3 py-1 text-xs font-semibold text-white hover:opacity-90">
                                             Setujui
+                                        </button>
+                                        <button onClick={() => open('revision', p)}
+                                            className="rounded-full border border-grape/40 px-3 py-1 text-xs font-semibold text-grape hover:bg-grape/10">
+                                            Minta revisi
                                         </button>
                                         <button onClick={() => open('reject', p)}
                                             className="rounded-full border border-brand/40 px-3 py-1 text-xs font-semibold text-brand hover:bg-brand/10">
@@ -203,12 +222,49 @@ export default function Index({ posts }) {
                 </Modal>
             )}
 
+            {dialog?.type === 'revision' && (
+                <Modal title="Minta revisi" onClose={close}>
+                    <form onSubmit={submitRevision}>
+                        <p className="mb-4 text-sm text-ink/60">
+                            Penulis akan melihat catatan ini, lalu bisa memperbaiki dan mengirim ulang
+                            &quot;{dialog.post.title}&quot;.
+                        </p>
+                        {revision.errors.post && (
+                            <p className="mb-3 rounded-2xl bg-brand/10 px-3 py-2 text-sm font-medium text-brand">
+                                {revision.errors.post}
+                            </p>
+                        )}
+                        <label className="mb-1 block text-sm font-semibold text-ink" htmlFor="revision_note">
+                            Catatan revisi
+                        </label>
+                        <textarea id="revision_note" rows={4} maxLength={500}
+                            value={revision.data.revision_note}
+                            onChange={(e) => revision.setData('revision_note', e.target.value)}
+                            className={TEXTAREA} />
+                        {revision.errors.revision_note && (
+                            <p className="mt-1 text-sm text-brand">{revision.errors.revision_note}</p>
+                        )}
+                        <div className="mt-6 flex justify-end gap-2">
+                            <button type="button" onClick={close}
+                                className="rounded-full border border-ink/20 px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5">
+                                Batal
+                            </button>
+                            <button type="submit" disabled={revision.processing}
+                                className="rounded-full bg-grape px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60">
+                                Kirim permintaan revisi
+                            </button>
+                        </div>
+                    </form>
+                </Modal>
+            )}
+
             {dialog?.type === 'reject' && (
                 <Modal title="Tolak postingan" onClose={close}>
                     <form onSubmit={submitReject}>
                         <p className="mb-4 text-sm text-ink/60">
-                            Penulis akan melihat alasan ini dan bisa memperbaiki lalu mengirim ulang
-                            &quot;{dialog.post.title}&quot;.
+                            Penolakan bersifat final: penulis tidak bisa mengedit atau mengirim ulang
+                            &quot;{dialog.post.title}&quot;, hanya bisa menghapusnya. Kalau masih bisa
+                            diperbaiki, pilih <b>Minta revisi</b>.
                         </p>
                         {reject.errors.post && (
                             <p className="mb-3 rounded-2xl bg-brand/10 px-3 py-2 text-sm font-medium text-brand">
@@ -221,7 +277,7 @@ export default function Index({ posts }) {
                         <textarea id="reason" rows={4} maxLength={500}
                             value={reject.data.rejection_reason}
                             onChange={(e) => reject.setData('rejection_reason', e.target.value)}
-                            className="w-full rounded-xl border border-ink/15 px-3 py-2 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20" />
+                            className={TEXTAREA} />
                         {reject.errors.rejection_reason && (
                             <p className="mt-1 text-sm text-brand">{reject.errors.rejection_reason}</p>
                         )}

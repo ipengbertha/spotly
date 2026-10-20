@@ -76,10 +76,10 @@ class UserPostTest extends TestCase
         $this->assertSame('submitted', $post->fresh()->status);
     }
 
-    public function test_rejected_post_can_be_resubmitted_and_reason_cleared(): void
+    public function test_revision_post_can_be_resubmitted_and_reason_cleared(): void
     {
         $user = $this->makeUser();
-        $post = $this->makePost($user, 'rejected');
+        $post = $this->makePost($user, 'revision');
         $post->forceFill(['rejection_reason' => 'Kurang jelas'])->save();
 
         $this->actingAs($user)->post("/user/posts/{$post->id}/submit");

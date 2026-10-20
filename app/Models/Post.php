@@ -20,6 +20,7 @@ class Post extends Model
     public const REJECTED = 'rejected';
     public const ARCHIVED = 'archived';
     public const SUSPENDED = 'suspended';
+    public const REVISION = 'revision';
     public const MAX_PINNED = 3;
 
     // Kecepatan baca rata-rata untuk estimasi waktu baca (kata per menit)
@@ -167,9 +168,10 @@ class Post extends Model
         });
     }
 
-    public function isEditableByOwner(): bool
+        public function isEditableByOwner(): bool
     {
-        return in_array($this->status, [self::DRAFT, self::REJECTED]);
+        // Draf dan "perlu revisi" boleh diedit dan dikirim ulang. Ditolak bersifat final.
+        return in_array($this->status, [self::DRAFT, self::REVISION]);
     }
 
     public function isDeletableByOwner(): bool
@@ -206,6 +208,16 @@ class Post extends Model
         $this->forceFill([
             'status'           => self::REJECTED,
             'rejection_reason' => $reason,
+        ])->save();
+    }
+
+    // Dipanggil admin saat meminta perbaikan. Penulis boleh mengedit dan mengirim ulang.
+    // Catatan disimpan di kolom rejection_reason yang sama dengan alasan penolakan.
+    public function markRevisionRequested(string $note): void
+    {
+        $this->forceFill([
+            'status'           => self::REVISION,
+            'rejection_reason' => $note,
         ])->save();
     }
 

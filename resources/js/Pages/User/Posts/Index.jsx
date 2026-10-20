@@ -7,6 +7,7 @@ import ConfirmDialog, { SUBMIT_WARNING } from '../../../Components/ConfirmDialog
 const TABS = [
     ['all', 'Semua'],
     ['submitted', 'Menunggu review'],
+    ['revision', 'Perlu revisi'],
     ['published', 'Tayang'],
     ['rejected', 'Ditolak'],
     ['suspended', 'Ditangguhkan'],
@@ -91,10 +92,23 @@ export default function Index({ posts }) {
 
                             <h2 className="line-clamp-2 text-lg leading-snug text-ink">{p.title}</h2>
 
+                            {p.status === 'revision' && p.rejection_reason && (
+                                <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+                                    <p className="font-semibold">Catatan revisi</p>
+                                    <p className="mt-0.5 text-ink/80">{p.rejection_reason}</p>
+                                    <p className="mt-1 text-xs text-ink/60">
+                                        Perbaiki lewat Edit, lalu kirim ulang.
+                                    </p>
+                                </div>
+                            )}
+
                             {p.status === 'rejected' && p.rejection_reason && (
                                 <div className="rounded-lg bg-brand/10 p-3 text-sm text-brand">
                                     <p className="font-semibold">Alasan penolakan</p>
                                     <p className="mt-0.5 text-ink/80">{p.rejection_reason}</p>
+                                    <p className="mt-1 text-xs text-ink/60">
+                                        Penolakan bersifat final: postingan ini tidak bisa diedit atau dikirim ulang.
+                                    </p>
                                 </div>
                             )}
 
@@ -124,7 +138,7 @@ export default function Index({ posts }) {
                                 {p.can.submit && (
                                     <button onClick={() => setToSubmit(p)}
                                         className="rounded-lg bg-ink px-3 py-1.5 font-semibold text-white hover:opacity-90">
-                                        {p.status === 'rejected' ? 'Kirim ulang' : 'Kirim'}
+                                        {p.status === 'revision' ? 'Kirim ulang' : 'Kirim'}
                                     </button>
                                 )}
                                 {p.can.delete && (
@@ -142,7 +156,7 @@ export default function Index({ posts }) {
             {/* Dialog harus berada DI DALAM UserLayout */}
             <ConfirmDialog
                 open={toSubmit !== null}
-                title={toSubmit?.status === 'rejected' ? 'Kirim ulang?' : 'Kirim untuk review?'}
+                title={toSubmit?.status === 'revision' ? 'Kirim ulang?' : 'Kirim untuk review?'}
                 message={SUBMIT_WARNING}
                 confirmLabel="Ya, kirim"
                 onCancel={() => setToSubmit(null)}
