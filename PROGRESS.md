@@ -1,7 +1,8 @@
-# Spotly: Dokumen Serah Terima (2 Oktober 2026)
+# Spotly: Dokumen Serah Terima (diperbarui 20 Oktober 2026)
 
 Proyek UKK: mading digital sekolah. Stack: Laravel 12, Inertia.js + React, Tailwind v4, SQLite.
 Repo: github.com/ipengbertha/spotly
+Tenggat UKK: 4 Januari 2027.
 
 ## Aturan kerja (wajib diikuti)
 
@@ -32,8 +33,14 @@ Repo: github.com/ipengbertha/spotly
   tambahan otomatis memakai kategori tambahan pertamanya. Yang tidak punya
   dipindah ke tujuan pilihan admin, atau ke "Lainnya".
 - Logo: komponen Logo.jsx (varian wordmark, full, icon), gambar di public/images/.
-- Tampilan baru: rail ikon navy melayang, header pill putih, kartu putih membulat.
+- Tampilan: rail ikon navy melayang, header pill putih, kartu putih membulat.
   Warna: ink, brand (merah muda), grape (ungu), peach, cream.
+- Isi artikel disimpan sebagai HTML dari editor. Semua urusannya ada di
+  app/Support/PostHtml.php (bersihkan sebelum simpan, tampilkan, ambil teks polos).
+  Artikel lama berupa teks biasa tetap tampil lewat isLegacy(), tanpa migrasi data.
+- Form postingan siswa: komponen bersama resources/js/Components/PostForm.jsx,
+  dipakai halaman Buat (User/PostCreate) dan Edit (User/PostEdit).
+- Rute siswa ada di grup "Area User" di routes/web.php (awalan /user, nama user.*).
 
 ## Sudah dikerjakan
 
@@ -59,21 +66,7 @@ Tambahan setelah 5E:
   tombol aksi satu baris, pagination selalu tampil berbahasa Indonesia
 - Pencarian di header admin: Mading, Pengguna, Review, Arsip
 
-Tes otomatis: php artisan test (seluruh suite). Berkas tes ada di tests/Feature/Admin
-dan tests/Feature/User (termasuk ExtraCategoryTest, PostArchiveTest, PostPinTest,
-CategoryManagementTest, UserManagementTest).
-
-## Belum diverifikasi (jangan dianggap pasti jalan)
-
-- Di browser: alur kategori tambahan (form buat/edit siswa, kartu menampilkan
-  banyak kategori), hapus kategori dengan kotak pemindahan, nonaktifkan akun
-  (login ditolak, sesi aktif dikeluarkan), Setujui/Tolak setelah desain baru
-- Halaman Postingan Saya dan tampilan layar sempit (drawer mobile)
-
-## Pembaruan (15 Oktober 2026)
-
-Tenggat UKK: 4 Januari 2027.
-
+Pembaruan 15 Oktober 2026:
 - Fitur komentar, saklar komentar (penulis), dan moderasi komentar admin.
 - Tahap 1A (kenyamanan membaca): estimasi waktu baca, ukuran font dan mode gelap
   di halaman baca, pencarian langsung dan filter periode di Mading, bagikan
@@ -85,30 +78,86 @@ Tenggat UKK: 4 Januari 2027.
   (atau jalankan perintahnya sekali sebelum demo); server: cron `schedule:run`.
   Mading dan halaman Arsip tetap akurat tanpa penjadwal karena membaca lewat waktu.
 - Timezone config/app.php sudah 'Asia/Jakarta'.
-- Seeder data realistis sudah ada (PostSeeder 14 postingan, DemoActivitySeeder: like,
+- Seeder data realistis (PostSeeder 14 postingan, DemoActivitySeeder: like,
   simpanan, komentar, laporan). README sudah diperbarui (fitur, penjadwal, tes).
-- Berkas nyasar: tests/CommentTest.php (32 tes) berbeda dari tests/Feature/CommentTest.php
-  (44 tes) dan tidak ikut dijalankan karena di luar folder suite. Kemungkinan salinan lama; periksa lalu hapus.
-- Catatan lingkungan: folder resource bernama js/Pages (huruf besar). Di Linux, pengecekan
-  halaman Inertia pada tes mencari js/pages, jadi tes bisa gagal di server/CI Linux.
+
+Pembaruan 16-20 Oktober 2026 (dari riwayat commit):
+- Reaksi emoji dan komentar bertingkat (balasan tanpa batas), username di komentar.
+- Menu komentar: edit (24 jam), jempol, laporan komentar.
+- Riwayat bacaan (/user/riwayat), artikel terkait, tombol lihat/sembunyikan komentar.
+- Editor artikel rich text (TipTap): tebal, miring, garis bawah, judul H2/H3, daftar,
+  kutipan, tautan (dibuka di tab baru), tabel. HTML dibersihkan di server dengan
+  mews/purifier lewat PostHtml.php.
+- Gambar di dalam artikel: tombol "Gambar" di toolbar. Unggah JPG/PNG/WEBP maks 2 MB
+  ke POST /user/post-images (PostImageController, hanya siswa, dibatasi 20 unggahan
+  per menit). Pembersih hanya meloloskan gambar dari /storage/post-images/, gambar
+  dari situs lain dibuang.
+- Video di dalam artikel: tombol "Video", hanya tautan YouTube (youtube.com, youtu.be,
+  shorts, embed), diubah jadi pemutar youtube-nocookie.com. Iframe lain dibuang di server.
+- Autosave draf: PostForm menyimpan otomatis 3 detik setelah siswa berhenti mengetik,
+  lewat POST /user/posts/autosave (PostController@autosave, JSON). Syarat: judul,
+  kategori utama, dan isi terisi. Gambar sampul tidak ikut autosave. Hanya draf dan
+  ditolak milik sendiri yang bisa disimpan (PostPolicy::update). Tanda "Tersimpan
+  otomatis pukul ..." tampil di samping tombol.
+
+Tes otomatis: `php artisan test` (seluruh suite), terakhir 325 lulus. Berkas tes ada di
+tests/Feature, tests/Feature/Admin, dan tests/Feature/User (termasuk PostMediaTest untuk
+gambar dan video, PostAutosaveTest untuk autosave).
+
+## Rencana sampai tenggat (8 minggu, mulai Minggu 1 = pertengahan Oktober)
+
+| Minggu | Fokus | Status |
+|---|---|---|
+| 1 | Tutup bagian A, cek B dan F | sebagian (editor jalan, rekomendasi artikel belum dipastikan) |
+| 2-3 | Editor rich text, gambar, video, autosave, pratinjau | editor, gambar, video, autosave selesai; pratinjau belum |
+| 4 | Status "perlu revisi" terpisah dari "ditolak", portofolio di profil | belum |
+| 5 | Jadwal terbit dan penarikan artikel, analitik dasar, log aktivitas | belum |
+| 6 | Polling dengan grafik, pertanyaan mingguan, kotak aspirasi | belum |
+| 7 | Poin, badge, leaderboard, streak | belum |
+| 8 | Voting karya terbaik, bug, dokumentasi | belum |
+
+Sengaja ditunda: riwayat versi, penyuntingan bersama, Kanban, kalender editorial,
+komentar internal, kuis, forum, level, tantangan antarkelas, penukaran poin.
+
+## Belum diverifikasi (jangan dianggap pasti jalan)
+
+- Di browser: autosave (indikator tersimpan, tidak membuat draf kembar, pesan offline).
+- Di browser: klik tautan di halaman baca terbuka di tab baru, modal Lihat di Review
+  admin untuk artikel seeder, tabel dan pemutar video di layar sempit.
+- Di browser: alur kategori tambahan, hapus kategori dengan kotak pemindahan,
+  nonaktifkan akun, Setujui/Tolak setelah desain baru.
+- Halaman Postingan Saya dan tampilan layar sempit (drawer mobile).
 
 ## Belum dikerjakan
 
-- Tampilan form postingan siswa (PostForm.jsx) masih gaya slate lama, belum selaras
-  dengan tema Spotly
+- Pratinjau artikel (tombol biasa yang menampilkan isi seperti di halaman baca)
+- Rekomendasi artikel (belum ada di kode; artikel terkait sudah ada)
+- Status "perlu revisi" terpisah dari "ditolak"; portofolio di profil
+- Pembersihan gambar dalam artikel yang sudah dihapus dari editor (file tetap di disk,
+  sengaja ditunda karena tidak mendesak)
 - Modal Lihat di Review, tabel Postingan, dan Arsip masih menampilkan kategori
   utama saja
 - Home.jsx (landing) belum dicek: kalau mencetak p.category langsung, hanya
   menampilkan kategori utama
 - Pagination halaman Pengguna belum diseragamkan
-- Menu rail redup "segera": hanya Profil di sisi siswa (UserLayout). Sisi admin tidak
-  punya lagi.
+- Menu rail redup "segera": hanya Profil di sisi siswa (UserLayout)
 - 2 tes DashboardTest user (opsional)
+- Nama tes lama "links open in new tab and images are not allowed" (PostContentTest)
+  perlu diganti agar sesuai: sekarang gambar dari penyimpanan sendiri boleh
+- Catatan fitur lama belum seluruhnya tercatat di sini; rapikan lewat `git log --oneline`
 
 ## Catatan teknis
 
 - Setelah clone: composer install, npm install, salin .env, php artisan key:generate,
-  php artisan migrate (ada migration is_active di users dan tabel category_post).
-- Tes memakai Category::create([...]) dan User::factory()->create(['role' => ...]).
+  php artisan migrate (ada migration is_active di users dan tabel category_post),
+  php artisan storage:link (supaya gambar unggahan bisa dibuka lewat /storage/...).
+- Tes memakai Category::create([...]) (wajib menyertakan slug, Category tidak punya
+  factory) dan User::factory()->create(['role' => ...]).
 - User.php punya $attributes = ['is_active' => true] supaya user buatan factory aktif.
 - Jangan pakai migrate:fresh di database yang berisi data.
+- Berkas nyasar: tests/CommentTest.php (32 tes) berbeda dari tests/Feature/CommentTest.php
+  (44 tes) dan tidak ikut dijalankan karena di luar folder suite. Kemungkinan salinan
+  lama; periksa lalu hapus.
+- Folder resource bernama js/Pages (huruf besar). Di Linux, pengecekan halaman Inertia
+  pada tes mencari js/pages, jadi tes bisa gagal di server/CI Linux.
+- Paket baru: @tiptap/extension-image, @tiptap/extension-youtube (npm), mews/purifier (composer).

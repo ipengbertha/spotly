@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 
 class PostController extends Controller
@@ -120,6 +121,36 @@ class PostController extends Controller
         }
 
         return redirect()->route('user.posts.index');
+    }
+
+        // Simpan otomatis dari form (JSON, tanpa pindah halaman).
+    // Membuat draf baru kalau post_id kosong, memperbarui draf yang ada kalau terisi.
+    public function autosave(PostRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        if ($request->filled('post_id')) {
+            $post = Post::findOrFail((int) $request->input('post_id'));
+            Gate::authorize('update', $post); // hanya pemilik, hanya draf atau ditolak
+
+            $post->fill([
+                'category_id' => $data['category_id'],
+                'title'       => $data['title'],
+                'content'     => $data['content'],
+            ])->save();
+        } else {
+            $post = Auth::user()->posts()->create([
+                'category_id' => $data['category_id'],
+                'title'       => $data['title'],
+                'content'     => $data['content'],
+                'slug'        => Str::slug($data['title']) . '-' . Str::random(5),
+            ]);
+            // status tetap default database = draft
+        }
+
+        $post->extraCategories()->sync($this->extraIds($data));
+
+        return response()->json(['id' => $post->id]);
     }
 
     public function submit(Post $post)

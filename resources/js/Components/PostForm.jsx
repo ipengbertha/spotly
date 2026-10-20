@@ -1,13 +1,23 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useForm } from '@inertiajs/react';
 import ConfirmDialog, { SUBMIT_WARNING } from './ConfirmDialog';
 import RichTextEditor from './RichTextEditor';
 
 const MAX_EXTRA = 2;
+const AUTOSAVE_DELAY = 3000; // simpan 3 detik setelah berhenti mengetik
 
 const INPUT =
     'w-full rounded-xl border border-ink/15 px-3 py-2 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20';
 const LABEL = 'mb-1 block text-sm font-semibold text-ink';
+
+function getCookie(name) {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : '';
+}
+
+// Ringkasan isi form, untuk tahu apakah ada yang berubah sejak simpan terakhir
+const snapshotOf = (d) =>
+    JSON.stringify([d.title, d.content, String(d.category_id), d.extra_category_ids]);
 
 export default function PostForm({ categories, post = null }) {
     const { data, setData, post: send, transform, processing, errors } = useForm({
@@ -19,13 +29,94 @@ export default function PostForm({ categories, post = null }) {
         _method: post ? 'put' : 'post', // upload file butuh POST + method spoofing
     });
     const [confirming, setConfirming] = useState(false);
+    const [autosave, setAutosave] = useState({ state: 'idle', text: '' });
 
-    const url = post ? `/user/posts/${post.id}` : '/user/posts';
+    // ID postingan: dari props (mode edit), atau dari autosave pertama (mode buat)
+    const postIdRef = useRef(post?.id ?? null);
+    const inflightRef = useRef(null);       // autosave yang sedang berjalan
+    const submittingRef = useRef(false);    // true saat Simpan/Kirim manual berjalan
+    const lastSavedRef = useRef(snapshotOf(data));
 
-    const sendWith = (action) => {
-        transform((d) => ({ ...d, action }));
-        send(url, { forceFormData: true });
+    const sendWith = async (action) => {
+        submittingRef.current = true;
+        // Tunggu autosave yang sedang berjalan supaya tidak membuat draf kembar
+        if (inflightRef.current) await inflightRef.current;
+
+        const id = postIdRef.current;
+        transform((d) => ({ ...d, action, _method: id ? 'put' : 'post' }));
+        send(id ? `/user/posts/${id}` : '/user/posts', {
+            forceFormData: true,
+            onFinish: () => { submittingRef.current = false; },
+        });
     };
+
+    const runAutosave = async (snapshot, payload) => {
+        if (submittingRef.current) return;
+        if (inflightRef.current) await inflightRef.current;
+        if (submittingRef.current) return;
+
+        setAutosave({ state: 'saving', text: 'Menyimpan…' });
+
+        const job = (async () => {
+            try {
+                const res = await fetch('/user/posts/autosave', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'),
+                    },
+                    body: JSON.stringify({ ...payload, post_id: postIdRef.current }),
+                });
+                const body = await res.json().catch(() => ({}));
+
+                if (!res.ok) {
+                    const firstError = body?.errors ? Object.values(body.errors)[0]?.[0] : null;
+                    throw new Error(
+                        res.status === 403
+                            ? 'Postingan ini tidak bisa diedit lagi.'
+                            : firstError ?? 'Simpan otomatis gagal.'
+                    );
+                }
+
+                postIdRef.current = body.id;
+                lastSavedRef.current = snapshot;
+                const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                setAutosave({ state: 'saved', text: `Tersimpan otomatis pukul ${time}` });
+            } catch (e) {
+                setAutosave({
+                    state: 'error',
+                    text: e instanceof TypeError ? 'Tidak ada koneksi. Simpan otomatis belum berhasil.' : e.message,
+                });
+            } finally {
+                inflightRef.current = null;
+            }
+        })();
+
+        inflightRef.current = job;
+    };
+
+    useEffect(() => {
+        const snapshot = snapshotOf(data);
+        if (snapshot === lastSavedRef.current) return; // belum ada perubahan
+
+        const ready = data.title.trim() !== '' && data.category_id !== '' && data.content !== '';
+        if (!ready) {
+            setAutosave({ state: 'idle', text: 'Simpan otomatis aktif setelah judul, kategori, dan isi terisi.' });
+            return;
+        }
+
+        const timer = setTimeout(() => runAutosave(snapshot, {
+            title: data.title,
+            content: data.content,
+            category_id: data.category_id,
+            extra_category_ids: data.extra_category_ids,
+        }), AUTOSAVE_DELAY);
+
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data.title, data.content, data.category_id, data.extra_category_ids]);
 
     // Kategori yang dipilih sebagai utama tidak boleh sekaligus jadi tambahan
     const changePrimary = (value) => {
@@ -135,6 +226,12 @@ export default function PostForm({ categories, post = null }) {
                     <Link href="/user/dashboard" className="px-3 py-2 text-sm font-semibold text-ink/60 hover:text-ink">
                         Batal
                     </Link>
+                    {autosave.text && (
+                        <p aria-live="polite"
+                            className={`text-xs sm:ml-auto ${autosave.state === 'error' ? 'font-semibold text-brand' : 'text-ink/50'}`}>
+                            {autosave.text}
+                        </p>
+                    )}
                 </div>
             </form>
 

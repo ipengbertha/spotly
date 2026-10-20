@@ -154,6 +154,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 Route::middleware(['auth', EnsureUserIsActive::class, 'role:user'])->prefix('user')->name('user.')->group(function () {
     Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
 
+    Route::post('posts/autosave', [PostController::class, 'autosave'])->name('posts.autosave');
     Route::resource('posts', PostController::class)->except(['show']);
     Route::post('posts/{post}/submit', [PostController::class, 'submit'])->name('posts.submit');
 
