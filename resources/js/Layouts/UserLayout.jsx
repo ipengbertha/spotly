@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import Logo from '../Components/Logo';
 import useLiveSearch, { madingSearchParams } from '../hooks/useLiveSearch';
+import useDrawer from '../hooks/useDrawer';
 import Tip from '../Components/RailTip';
 
 const ICONS = {
@@ -20,6 +21,7 @@ const ICONS = {
     user:   'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z',
     gear:   'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z',
     logout: 'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9',
+    back:   'M19 12H5M12 19l-7-7 7-7',
 };
 
 function Ico({ name, className = 'h-5 w-5' }) {
@@ -32,7 +34,7 @@ function Ico({ name, className = 'h-5 w-5' }) {
 }
 
 const BASE =
-    'group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition ' +
+    'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ' +
     'lg:h-9 lg:w-9 lg:short:h-8 lg:short:w-8 lg:justify-center lg:rounded-full lg:p-0';
 
 function NavItem({ icon, label, href, active, soon, badge }) {
@@ -87,11 +89,15 @@ export default function UserLayout({ children }) {
     const isHistory = u.pathname === '/user/riwayat';
     const isNotif = u.pathname.startsWith('/notifications');
     const isSettings = u.pathname.startsWith('/settings');
+    // Halaman form (buat / edit postingan): tanpa pencarian, ada tombol kembali ke Dashboard
+    const isForm = isCreate || /^\/user\/posts\/[^/]+\/edit$/.test(u.pathname);
     const unread = props.unreadNotifications ?? 0;
 
     const [open, setOpen] = useState(false);
     const [menu, setMenu] = useState(false);
     const [q, setQ] = useState(onBeranda ? (u.searchParams.get('q') ?? '') : '');
+
+    useDrawer(open, setOpen);
 
     // Di Mading, hasil dimuat sendiri saat mengetik; filter kategori dan tanggal ikut terbawa
     useLiveSearch({ enabled: onBeranda, q, url });
@@ -105,6 +111,8 @@ export default function UserLayout({ children }) {
     const today = new Date().toLocaleDateString('id-ID', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
     });
+    // Versi pendek untuk header di HP, misalnya "21 Okt"
+    const shortDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 
     // Menu dengan soon:true = halaman belum dibuat (tampil redup, tidak bisa diklik)
     const groups = [
@@ -128,15 +136,15 @@ export default function UserLayout({ children }) {
     ];
 
     return (
-        <div className="min-h-screen bg-linear-to-br from-peach/40 via-cream to-grape/15 bg-fixed text-ink">
+        <div className="min-h-dvh bg-linear-to-br from-peach/40 via-cream to-grape/15 bg-fixed text-ink">
             {open && (
                 <div className="fixed inset-0 z-30 bg-ink/40 lg:hidden" onClick={() => setOpen(false)} />
             )}
 
             {/* SIDEBAR: drawer di layar kecil, rail ikon melayang di layar lebar */}
             <aside
-                className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col gap-3 lg:short:gap-2 overflow-y-auto border-r border-peach/40 bg-white p-4 transition-transform lg:inset-y-3 lg:short:inset-y-2 lg:left-4 lg:w-16 lg:translate-x-0 lg:overflow-visible lg:border-0 lg:bg-transparent lg:p-0 ${
-                    open ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col gap-3 lg:short:gap-2 overflow-y-auto border-r border-peach/40 bg-white p-4 transition-[transform,visibility] lg:inset-y-3 lg:short:inset-y-2 lg:left-4 lg:w-16 lg:translate-x-0 lg:overflow-visible lg:border-0 lg:bg-transparent lg:p-0 ${
+                    open ? 'translate-x-0' : '-translate-x-full invisible lg:visible'}`}
             >
                 {/* Drawer (mobile): logo lengkap + tombol tutup */}
                 <div className="flex items-center justify-between lg:hidden">
@@ -180,33 +188,43 @@ export default function UserLayout({ children }) {
 
             {/* AREA UTAMA */}
             <div className="lg:pl-24">
-                {/* Header: pill putih melayang */}
+                {/* Header: pill putih melayang. Di HP semua isinya dikecilkan agar muat:
+                    hamburger, pencarian + tombol kaca pembesar, tanggal pendek, avatar. */}
                 <header className="sticky top-0 z-20 px-4 pt-3 sm:px-6">
-                    <div className="flex items-center gap-3 rounded-full bg-white px-3 py-2 shadow-md ring-1 ring-ink/5">
+                    <div className="flex items-center gap-2 rounded-full bg-white px-2 py-1.5 shadow-md ring-1 ring-ink/5 sm:gap-3 sm:px-3 sm:py-2">
                         <button onClick={() => setOpen(true)}
-                            className="rounded-full p-2 text-ink hover:bg-ink/5 lg:hidden" aria-label="Buka menu">
+                            className="rounded-full p-1.5 text-ink hover:bg-ink/5 sm:p-2 lg:hidden" aria-label="Buka menu">
                             <Ico name="menu" />
                         </button>
 
-                        <form onSubmit={search} className="relative w-full max-w-md">
-                            <Ico name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
-                            <input value={q} onChange={(e) => setQ(e.target.value)}
-                                placeholder="Cari informasi..."
-                                className="w-full rounded-full border border-ink/10 bg-cream/70 py-2 pl-10 pr-4 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20" />
-                        </form>
+                        {!isForm && (
+                            <form onSubmit={search} className="relative min-w-0 flex-1 sm:max-w-md">
+                                <input value={q} onChange={(e) => setQ(e.target.value)}
+                                    placeholder="Cari..." aria-label="Cari informasi"
+                                    className="w-full rounded-full border border-ink/10 bg-cream/70 py-1.5 pl-3 pr-10 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20 sm:py-2 sm:pl-4 sm:pr-12" />
+                                <button type="submit" aria-label="Cari"
+                                    className="absolute right-0.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-brand text-white shadow-sm hover:opacity-90 sm:right-1 sm:h-8 sm:w-8">
+                                    <Ico name="search" className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                </button>
+                            </form>
+                        )}
 
-                        <div className="ml-auto flex items-center gap-3">
-                            <span className="hidden rounded-full bg-grape/10 px-4 py-2 text-xs font-semibold text-grape xl:block">
-                                {today}
+                        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+                            <span className="whitespace-nowrap rounded-full bg-grape/10 px-2.5 py-1.5 text-[11px] font-semibold text-grape sm:px-4 sm:py-2 sm:text-xs">
+                                <span className="xl:hidden">{shortDate}</span>
+                                <span className="hidden xl:inline">{today}</span>
                             </span>
-                            <Link href="/user/posts/create"
-                                className="hidden items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90 sm:flex">
-                                <Ico name="plus" className="h-4 w-4" /> Buat Postingan
-                            </Link>
+
+                            {!isForm && (
+                                <Link href="/user/posts/create"
+                                    className="hidden items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90 sm:flex">
+                                    <Ico name="plus" className="h-4 w-4" /> Buat Postingan
+                                </Link>
+                            )}
 
                             <div className="relative">
                                 <button onClick={() => setMenu(!menu)}
-                                    className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 hover:bg-ink/5">
+                                    className="flex items-center gap-2 rounded-full py-0.5 pl-0.5 pr-0.5 hover:bg-ink/5 sm:py-1 sm:pl-1 sm:pr-2">
                                     {user?.avatar_url ? (
                                         <img src={user.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
                                     ) : (
@@ -216,7 +234,7 @@ export default function UserLayout({ children }) {
                                     )}
                                     <span className="hidden max-w-32 truncate text-sm font-semibold md:block">{user?.name}</span>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                                        strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-ink/50" aria-hidden="true">
+                                        strokeLinecap="round" strokeLinejoin="round" className="hidden h-4 w-4 text-ink/50 sm:block" aria-hidden="true">
                                         <path d="M6 9l6 6 6-6" />
                                     </svg>
                                 </button>
@@ -241,7 +259,16 @@ export default function UserLayout({ children }) {
                     </div>
                 </header>
 
-                <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
+                <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+                    {isForm && (
+                        <Link href="/user/dashboard"
+                            className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-ink ring-2 ring-peach transition hover:bg-peach/40">
+                            <Ico name="back" className="h-4 w-4" />
+                            Kembali ke Dashboard
+                        </Link>
+                    )}
+                    {children}
+                </main>
             </div>
         </div>
     );

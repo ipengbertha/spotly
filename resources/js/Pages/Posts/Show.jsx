@@ -1,5 +1,4 @@
 import { Head, Link, router } from '@inertiajs/react';
-import ViewerLayout from '../../Layouts/ViewerLayout';
 import Avatar from '../../Components/Avatar';
 import StatusBadge from '../../Components/StatusBadge';
 import LikeButton from '../../Components/LikeButton';
@@ -9,6 +8,7 @@ import CommentSection from '../../Components/CommentSection';
 import PostMenu from '../../Components/PostMenu';
 import ReactionBar from '../../Components/ReactionBar';
 import ReaderToolbar, { SIZE_CLASSES, useReaderPrefs } from '../../Components/ReaderToolbar';
+import ReaderLayout from '../../Layouts/ReaderLayout';
 
 const formatDate = (iso) =>
     iso
@@ -47,7 +47,7 @@ export default function Show({ post, viewer, related = [] }) {
     const dark = prefs.dark;
 
     return (
-        <ViewerLayout viewer={viewer} title="Detail Postingan">
+        <ReaderLayout>
             <Head title={post.title} />
 
             <div className="mx-auto w-full max-w-6xl">
@@ -186,6 +186,6 @@ export default function Show({ post, viewer, related = [] }) {
                     )}
                 </div>
             </div>
-        </ViewerLayout>
+        </ReaderLayout>
     );
 }

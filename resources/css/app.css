@@ -89,3 +89,16 @@
     pointer-events: none;
 }
 .post-editor .ProseMirror .selectedCell { background: color-mix(in srgb, var(--color-grape) 15%, transparent); }
+/* HP: input 16px agar iPhone tidak memperbesar halaman saat kolom difokus */
+@media (max-width: 639px) {
+    input, select, textarea { font-size: 16px; }
+}
+
+/* Gambar dan video tidak boleh lebih lebar dari kolom (penting di HP) */
+.post-body img,
+.post-editor .ProseMirror img { max-width: 100%; height: auto; }
+.post-body iframe,
+.post-editor .ProseMirror iframe {
+    display: block; width: 100%; max-width: 100%;
+    height: auto; aspect-ratio: 16 / 9; border: 0;
+}

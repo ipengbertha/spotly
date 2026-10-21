@@ -3,6 +3,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import Logo from '../Components/Logo';
 import useLiveSearch, { madingSearchParams } from '../hooks/useLiveSearch';
 import Tip from '../Components/RailTip';
+import useDrawer from '../hooks/useDrawer';
 
 const ICONS = {
     dash:    'M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z',
@@ -75,6 +76,7 @@ export default function AdminLayout({ title, children }) {
     const { url, props } = usePage();
     const user = props.auth?.user;
     const [open, setOpen] = useState(false);
+    useDrawer(open, setOpen);
 
     const u = new URL(url, 'http://localhost');
     const onMading = u.pathname === '/user/beranda';
@@ -145,15 +147,15 @@ export default function AdminLayout({ title, children }) {
     ];
 
     return (
-        <div className="min-h-screen bg-linear-to-br from-peach/40 via-cream to-grape/15 bg-fixed text-ink">
+        <div className="min-h-dvh bg-linear-to-br from-peach/40 via-cream to-grape/15 bg-fixed text-ink">
             {open && (
                 <div className="fixed inset-0 z-30 bg-ink/40 lg:hidden" onClick={() => setOpen(false)} />
             )}
 
             {/* SIDEBAR: drawer di layar kecil, rail ikon melayang di layar lebar */}
             <aside
-                className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col gap-3 lg:short:gap-2 overflow-y-auto border-r border-peach/40 bg-white p-4 transition-transform lg:inset-y-3 lg:short:inset-y-2 lg:left-4 lg:w-16 lg:translate-x-0 lg:overflow-visible lg:border-0 lg:bg-transparent lg:p-0 ${
-                    open ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col gap-3 lg:short:gap-2 overflow-y-auto border-r border-peach/40 bg-white p-4 transition-[transform,visibility] lg:inset-y-3 lg:short:inset-y-2 lg:left-4 lg:w-16 lg:translate-x-0 lg:overflow-visible lg:border-0 lg:bg-transparent lg:p-0 ${
+                    open ? 'translate-x-0' : '-translate-x-full invisible lg:visible'}`}
             >
                 {/* Drawer (mobile): logo + label Admin + tombol tutup */}
                 <div className="flex items-center justify-between lg:hidden">
