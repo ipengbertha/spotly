@@ -23,6 +23,10 @@ class Post extends Model
     public const REVISION = 'revision';
     public const MAX_PINNED = 3;
 
+    // Hanya label tampilan (dari displayStatus), TIDAK pernah disimpan di kolom status.
+    // Artinya: sudah disetujui, tapi published_at masih di masa depan.
+    public const SCHEDULED = 'scheduled';
+
     // Kecepatan baca rata-rata untuk estimasi waktu baca (kata per menit)
     public const READING_WPM = 200;
 
@@ -143,6 +147,8 @@ class Post extends Model
     /**
      * Postingan AKTIF di mading: status published DAN sedang dalam masa tayang.
      * Dicek lewat waktu, jadi tetap akurat walau command arsip belum jalan.
+     * Postingan terjadwal (published_at di masa depan) otomatis tidak ikut,
+     * dan muncul sendiri saat waktunya tiba tanpa command apa pun.
      */
     public function scopeActive($query)
     {
@@ -151,6 +157,15 @@ class Post extends Model
             ->where(function ($q) {
                 $q->whereNull('expired_at')->orWhere('expired_at', '>', now());
             });
+    }
+
+    /**
+     * Terjadwal: sudah disetujui admin, tapi belum waktunya tayang.
+     */
+    public function scopeScheduled($query)
+    {
+        return $query->where('status', self::PUBLISHED)
+            ->where('published_at', '>', now());
     }
 
     /**
@@ -168,7 +183,7 @@ class Post extends Model
         });
     }
 
-        public function isEditableByOwner(): bool
+    public function isEditableByOwner(): bool
     {
         // Draf dan "perlu revisi" boleh diedit dan dikirim ulang. Ditolak bersifat final.
         return in_array($this->status, [self::DRAFT, self::REVISION]);
@@ -191,12 +206,24 @@ class Post extends Model
         ])->save();
     }
 
-    // Dipanggil admin saat approve. published_at otomatis sekarang.
-    public function markPublished(Carbon $expiredAt): void
+        // Batalkan jadwal terbit: kembali ke antrean review dan dianggap belum pernah disetujui
+    public function cancelSchedule(): void
+    {
+        $this->forceFill([
+            'status'       => self::SUBMITTED,
+            'published_at' => null,
+            'expired_at'   => null,
+            'is_pinned'    => false,
+        ])->save();
+    }
+
+    // Dipanggil admin saat approve. Tanpa $publishAt, published_at otomatis sekarang
+    // (langsung tayang). Dengan $publishAt di masa depan, postingan menjadi terjadwal.
+    public function markPublished(Carbon $expiredAt, ?Carbon $publishAt = null): void
     {
         $this->forceFill([
             'status'           => self::PUBLISHED,
-            'published_at'     => now(),
+            'published_at'     => $publishAt ?? now(),
             'expired_at'       => $expiredAt,
             'rejection_reason' => null,
         ])->save();
@@ -228,6 +255,14 @@ class Post extends Model
             && $this->published_at !== null
             && $this->published_at->lte(now())
             && ($this->expired_at === null || $this->expired_at->gt(now()));
+    }
+
+    // Sudah disetujui tapi belum waktunya tayang (cermin scopeScheduled)
+    public function isScheduled(): bool
+    {
+        return $this->status === self::PUBLISHED
+            && $this->published_at !== null
+            && $this->published_at->gt(now());
     }
 
     public function setExpiry(Carbon $expiredAt): void
@@ -272,10 +307,15 @@ class Post extends Model
         ])->save();
     }
 
+    // Status untuk ditampilkan: arsip kalau masa tayang lewat, "scheduled" kalau belum waktunya tayang.
     public function displayStatus(): string
     {
         if ($this->status === self::PUBLISHED && $this->expired_at && $this->expired_at->isPast()) {
             return self::ARCHIVED;
+        }
+
+        if ($this->isScheduled()) {
+            return self::SCHEDULED;
         }
 
         return $this->status;

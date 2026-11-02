@@ -89,7 +89,8 @@ export default function UserLayout({ children }) {
     const isHistory = u.pathname === '/user/riwayat';
     const isNotif = u.pathname.startsWith('/notifications');
     const isSettings = u.pathname.startsWith('/settings');
-    // Halaman form (buat / edit postingan): tanpa pencarian, ada tombol kembali ke Dashboard
+    const isMyProfile = u.pathname === `/profil/${user?.id}`;
+    // Halaman form (buat / edit postingan): tanpa pencarian, ada tombol kembali ke Postingan Saya
     const isForm = isCreate || /^\/user\/posts\/[^/]+\/edit$/.test(u.pathname);
     const unread = props.unreadNotifications ?? 0;
 
@@ -130,10 +131,27 @@ export default function UserLayout({ children }) {
         ]],
         ['Akun', [
             { icon: 'bell',  label: 'Notifikasi',     href: '/notifications', active: isNotif, badge: unread },
-            { icon: 'user',  label: 'Profil',         soon: true },
+            { icon: 'user',  label: 'Profil',         href: `/profil/${user?.id}`, active: isMyProfile },
             { icon: 'gear',  label: 'Pengaturan',     href: '/settings', active: isSettings },
         ]],
     ];
+
+    // Halaman form (buat / edit postingan): tampilan fokus, tanpa header dan sidebar.
+    // Satu-satunya jalan keluar adalah tombol kembali ke Postingan Saya (dan tombol Batal di form).
+    if (isForm) {
+        return (
+            <div className="min-h-dvh bg-linear-to-br from-peach/40 via-cream to-grape/15 bg-fixed text-ink">
+                <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+                    <Link href="/user/posts"
+                        className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-ink ring-2 ring-peach transition hover:bg-peach/40">
+                        <Ico name="back" className="h-4 w-4" />
+                        Kembali ke Postingan Saya
+                    </Link>
+                    {children}
+                </main>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-dvh bg-linear-to-br from-peach/40 via-cream to-grape/15 bg-fixed text-ink">
@@ -243,6 +261,10 @@ export default function UserLayout({ children }) {
                                     <>
                                         <div className="fixed inset-0 z-30" onClick={() => setMenu(false)} />
                                         <div className="absolute right-0 z-40 mt-3 w-48 overflow-hidden rounded-2xl border border-ink/10 bg-white py-1 shadow-lg">
+                                            <Link href={`/profil/${user?.id}`} onClick={() => setMenu(false)}
+                                                className="block px-4 py-2 text-sm font-medium hover:bg-peach/30">
+                                                Profil Saya
+                                            </Link>
                                             <Link href="/user/posts" onClick={() => setMenu(false)}
                                                 className="block px-4 py-2 text-sm font-medium hover:bg-peach/30">
                                                 Postingan Saya
@@ -260,13 +282,6 @@ export default function UserLayout({ children }) {
                 </header>
 
                 <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-                    {isForm && (
-                        <Link href="/user/dashboard"
-                            className="mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-ink ring-2 ring-peach transition hover:bg-peach/40">
-                            <Ico name="back" className="h-4 w-4" />
-                            Kembali ke Dashboard
-                        </Link>
-                    )}
                     {children}
                 </main>
             </div>

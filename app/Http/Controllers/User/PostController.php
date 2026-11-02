@@ -30,6 +30,7 @@ class PostController extends Controller
                 'title'            => $p->title,
                 'status'           => $p->status,
                 'display_status'   => $p->displayStatus(),
+                'publish_label'    => $p->isScheduled() ? $p->published_at->translatedFormat('d M Y') : null,
                 'rejection_reason' => $p->rejection_reason,
                 'suspension_reason' => $p->suspension_reason,
                 'category'         => $p->category->name,

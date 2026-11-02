@@ -1,0 +1,204 @@
+<?php
+
+namespace Tests\Feature\Admin;
+
+use App\Models\ActivityLog;
+use App\Models\Category;
+use App\Models\Post;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia as Assert;
+use Tests\TestCase;
+
+class ActivityLogTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function admin(string $name = 'Admin Uji'): User
+    {
+        return User::factory()->create(['role' => 'admin', 'is_active' => true, 'name' => $name]);
+    }
+
+    private function buatPost(string $status, array $extra = []): Post
+    {
+        $siswa = User::factory()->create(['role' => 'user', 'is_active' => true]);
+
+        $data = ['name' => 'Berita ' . Str::random(4)];
+        if (Schema::hasColumn('categories', 'slug')) {
+            $data['slug'] = 'berita-' . Str::random(6);
+        }
+        $kategori = Category::forceCreate($data);
+
+        return Post::forceCreate(array_merge([
+            'user_id'     => $siswa->id,
+            'category_id' => $kategori->id,
+            'title'       => 'Judul ' . Str::random(6),
+            'slug'        => Str::slug('judul-' . Str::random(8)),
+            'content'     => '<p>isi artikel</p>',
+            'status'      => $status,
+        ], $extra));
+    }
+
+    private function tayang(): Post
+    {
+        return $this->buatPost(Post::PUBLISHED, [
+            'published_at' => now()->subDay(),
+            'expired_at'   => now()->addDays(10),
+        ]);
+    }
+
+    public function test_menyetujui_tercatat(): void
+    {
+        $admin = $this->admin();
+        $post = $this->buatPost(Post::SUBMITTED);
+
+        $this->actingAs($admin)->post("/admin/reviews/{$post->id}/approve", [
+            'expired_at' => now()->addDays(7)->toDateString(),
+        ]);
+
+        $log = ActivityLog::first();
+        $this->assertNotNull($log);
+        $this->assertSame($admin->id, $log->admin_id);
+        $this->assertSame('post.approved', $log->action);
+        $this->assertSame($post->id, $log->post_id);
+        $this->assertSame($post->title, $log->subject_title);
+        $this->assertStringContainsString('Tayang sampai', $log->detail);
+    }
+
+    public function test_menjadwalkan_tercatat(): void
+    {
+        $post = $this->buatPost(Post::SUBMITTED);
+
+        $this->actingAs($this->admin())->post("/admin/reviews/{$post->id}/approve", [
+            'publish_at' => now()->addDays(2)->toDateString(),
+            'expired_at' => now()->addDays(9)->toDateString(),
+        ]);
+
+        $log = ActivityLog::first();
+        $this->assertSame('post.scheduled', $log->action);
+        $this->assertStringContainsString('sampai', $log->detail);
+    }
+
+    public function test_menolak_menyimpan_alasan(): void
+    {
+        $post = $this->buatPost(Post::SUBMITTED);
+
+        $this->actingAs($this->admin())->post("/admin/reviews/{$post->id}/reject", [
+            'rejection_reason' => 'Isinya belum sesuai pedoman mading.',
+        ]);
+
+        $log = ActivityLog::first();
+        $this->assertSame('post.rejected', $log->action);
+        $this->assertSame('Isinya belum sesuai pedoman mading.', $log->detail);
+    }
+
+    public function test_minta_revisi_menyimpan_catatan(): void
+    {
+        $post = $this->buatPost(Post::SUBMITTED);
+
+        $this->actingAs($this->admin())->post("/admin/reviews/{$post->id}/revision", [
+            'revision_note' => 'Tolong tambahkan sumber foto.',
+        ]);
+
+        $log = ActivityLog::first();
+        $this->assertSame('post.revision', $log->action);
+        $this->assertSame('Tolong tambahkan sumber foto.', $log->detail);
+    }
+
+    public function test_aksi_kelola_postingan_tercatat(): void
+    {
+        $admin = $this->admin();
+        $post = $this->tayang();
+
+        $this->actingAs($admin);
+
+        $this->post("/admin/posts/{$post->id}/pin");
+        $this->post("/admin/posts/{$post->id}/pin"); // sudah di-pin: tidak dicatat lagi
+        $this->delete("/admin/posts/{$post->id}/pin");
+        $this->patch("/admin/posts/{$post->id}/expiry", ['expired_at' => now()->addDays(20)->toDateString()]);
+        $this->post("/admin/posts/{$post->id}/archive");
+        $this->delete("/admin/posts/{$post->id}");
+
+        $this->assertSame(
+            ['post.pinned', 'post.unpinned', 'post.expiry', 'post.archived', 'post.deleted'],
+            ActivityLog::orderBy('id')->pluck('action')->all()
+        );
+
+        // Postingannya sudah hilang, tapi judulnya tetap terbaca di log
+        $this->assertDatabaseMissing('posts', ['id' => $post->id]);
+        $this->assertSame($post->title, ActivityLog::orderByDesc('id')->first()->subject_title);
+    }
+
+    public function test_batalkan_jadwal_tercatat(): void
+    {
+        $post = $this->buatPost(Post::PUBLISHED, [
+            'published_at' => now()->addDays(3),
+            'expired_at'   => now()->addDays(10),
+        ]);
+
+        $this->actingAs($this->admin())->post("/admin/posts/{$post->id}/unschedule");
+
+        $this->assertSame('post.unscheduled', ActivityLog::first()->action);
+    }
+
+    public function test_aksi_gagal_tidak_tercatat(): void
+    {
+        $post = $this->tayang(); // bukan berstatus submitted
+
+        $this->actingAs($this->admin())->post("/admin/reviews/{$post->id}/approve", [
+            'expired_at' => now()->addDays(7)->toDateString(),
+        ])->assertSessionHasErrors('post');
+
+        $this->assertSame(0, ActivityLog::count());
+    }
+
+    public function test_admin_melihat_aktivitas_terbaru_dulu(): void
+    {
+        $admin = $this->admin('Budi Admin');
+
+        ActivityLog::forceCreate([
+            'admin_id' => $admin->id, 'action' => 'post.archived', 'subject_title' => 'Judul Lama',
+            'created_at' => now()->subHour(), 'updated_at' => now()->subHour(),
+        ]);
+        ActivityLog::forceCreate([
+            'admin_id' => $admin->id, 'action' => 'post.approved', 'subject_title' => 'Judul Baru',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/activity')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Activity/Index')
+                ->has('logs.data', 2)
+                ->where('logs.data.0.title', 'Judul Baru')
+                ->where('logs.data.0.label', 'menyetujui')
+                ->where('logs.data.0.admin', 'Budi Admin')
+                ->where('logs.data.1.title', 'Judul Lama'));
+    }
+
+    public function test_pencarian_aktivitas(): void
+    {
+        $admin = $this->admin();
+
+        ActivityLog::forceCreate(['admin_id' => $admin->id, 'action' => 'post.approved', 'subject_title' => 'Kantin Sehat']);
+        ActivityLog::forceCreate(['admin_id' => $admin->id, 'action' => 'post.approved', 'subject_title' => 'Lomba Poster']);
+
+        $this->actingAs($admin)
+            ->get('/admin/activity?q=Kantin')
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('logs.data', 1)
+                ->where('logs.data.0.title', 'Kantin Sehat'));
+    }
+
+    public function test_siswa_dan_tamu_tidak_bisa_membuka_aktivitas(): void
+    {
+        $siswa = User::factory()->create(['role' => 'user', 'is_active' => true]);
+
+        $this->get('/admin/activity')->assertRedirect('/login');
+
+        $this->actingAs($siswa)->get('/admin/activity')->assertForbidden();
+    }
+}

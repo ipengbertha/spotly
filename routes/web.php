@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\PostController as AdminPostController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\ActivityLogController as AdminActivityLogController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\BookmarkController;
@@ -117,6 +118,7 @@ Route::middleware(['auth', EnsureUserIsActive::class])->group(function () {
 // Area Admin
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/activity', [AdminActivityLogController::class, 'index'])->name('activity.index');
 
     Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index');
     Route::post('/reviews/{post}/approve', [ReviewController::class, 'approve'])->name('reviews.approve');
@@ -136,6 +138,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/posts/{post}/pin', [AdminPostController::class, 'pin'])->name('posts.pin');
     Route::delete('/posts/{post}/pin', [AdminPostController::class, 'unpin'])->name('posts.unpin');
     Route::post('/posts/{post}/archive', [AdminPostController::class, 'archive'])->name('posts.archive');
+    Route::post('/posts/{post}/unschedule', [AdminPostController::class, 'unschedule'])->name('posts.unschedule');
     Route::delete('/posts/{post}', [AdminPostController::class, 'destroy'])->name('posts.destroy');
 
     Route::get('/archive', [AdminArchiveController::class, 'index'])->name('archive.index');

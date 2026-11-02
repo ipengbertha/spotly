@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -12,7 +13,7 @@ use Inertia\Inertia;
 
 class PostController extends Controller
 {
-        public function index(Request $request)
+    public function index(Request $request)
     {
         $request->validate(['q' => ['nullable', 'string', 'max:100']]);
         $q = $request->query('q');
@@ -35,6 +36,20 @@ class PostController extends Controller
                     'expired_label'   => $p->expired_at?->translatedFormat('d M Y') ?? 'Tanpa batas',
                     'expired_input'   => $p->expired_at?->toDateString() ?? '',
                 ]),
+            // Sudah disetujui tapi belum waktunya tayang. Tidak ikut pencarian dan halaman.
+            'scheduled' => Post::scheduled()
+                ->with(['user:id,name', 'category:id,name'])
+                ->orderBy('published_at')
+                ->get()
+                ->map(fn (Post $p) => [
+                    'id'            => $p->id,
+                    'title'         => $p->title,
+                    'author'        => $p->user?->name,
+                    'category'      => $p->category?->name,
+                    'publish_label' => $p->published_at->translatedFormat('d M Y'),
+                    'expired_label' => $p->expired_at?->translatedFormat('d M Y') ?? 'Tanpa batas',
+                ])
+                ->values(),
             // Dihitung dari semua postingan tayang, bukan hanya hasil pencarian
             'pinnedCount' => Post::active()->where('is_pinned', true)->count(),
             'maxPinned'   => Post::MAX_PINNED,
@@ -58,6 +73,8 @@ class PostController extends Controller
 
         $post->setExpiry(Carbon::parse($data['expired_at'])->endOfDay());
 
+        ActivityLog::record('post.expiry', $post, 'Sampai ' . $post->expired_at->translatedFormat('d M Y'));
+
         return back();
     }
 
@@ -69,26 +86,41 @@ class PostController extends Controller
 
         // Hitung dan pasang dalam satu transaksi dengan kunci baris,
         // supaya dua admin tidak bisa sama-sama meloloskan pin ke-4.
-        $error = DB::transaction(function () use ($post) {
+        $result = DB::transaction(function () use ($post) {
             $pinnedIds = Post::active()->where('is_pinned', true)->lockForUpdate()->pluck('id');
 
             if ($pinnedIds->contains($post->id)) {
-                return null; // sudah di-pin
+                return ['changed' => false]; // sudah di-pin
             }
             if ($pinnedIds->count() >= Post::MAX_PINNED) {
-                return 'Maksimal ' . Post::MAX_PINNED . ' postingan yang bisa di-pin. Lepas pin salah satu dulu.';
+                return ['error' => 'Maksimal ' . Post::MAX_PINNED . ' postingan yang bisa di-pin. Lepas pin salah satu dulu.'];
             }
 
             $post->setPinned(true);
-            return null;
+
+            return ['changed' => true];
         });
 
-        return $error ? back()->withErrors(['post' => $error]) : back();
+        if (isset($result['error'])) {
+            return back()->withErrors(['post' => $result['error']]);
+        }
+
+        if ($result['changed']) {
+            ActivityLog::record('post.pinned', $post);
+        }
+
+        return back();
     }
 
     public function unpin(Post $post)
     {
+        $wasPinned = (bool) $post->is_pinned;
+
         $post->setPinned(false);
+
+        if ($wasPinned) {
+            ActivityLog::record('post.unpinned', $post);
+        }
 
         return back();
     }
@@ -102,6 +134,22 @@ class PostController extends Controller
 
         $post->markArchived();
 
+        ActivityLog::record('post.archived', $post);
+
+        return back();
+    }
+
+    // Batalkan jadwal: postingan terjadwal kembali ke antrean review
+    public function unschedule(Post $post)
+    {
+        if (! $post->isScheduled()) {
+            return back()->withErrors(['post' => 'Hanya postingan terjadwal yang bisa dibatalkan jadwalnya.']);
+        }
+
+        $post->cancelSchedule();
+
+        ActivityLog::record('post.unscheduled', $post, 'Kembali ke antrean review');
+
         return back();
     }
 
@@ -112,6 +160,9 @@ class PostController extends Controller
         if (! $post->isActive() && ! $post->isArchived()) {
             return back()->withErrors(['post' => 'Hanya postingan yang tayang atau di arsip yang bisa dihapus dari sini.']);
         }
+
+        // Dicatat sebelum dihapus supaya judulnya masih terbaca di log
+        ActivityLog::record('post.deleted', $post);
 
         if ($post->image) {
             Storage::disk('public')->delete($post->image);

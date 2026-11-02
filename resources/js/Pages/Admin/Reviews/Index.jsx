@@ -30,14 +30,20 @@ function Modal({ title, onClose, children }) {
 const TEXTAREA =
     'w-full rounded-xl border border-ink/15 px-3 py-2 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20';
 
+const DATE_INPUT =
+    'w-full rounded-xl border border-ink/15 px-3 py-2 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20';
+
 export default function Index({ posts }) {
     const { url } = usePage();
     const keyword = new URL(url, 'http://localhost').searchParams.get('q');
 
     const [dialog, setDialog] = useState(null); // { type: 'view' | 'approve' | 'revision' | 'reject', post }
-    const approve = useForm({ expired_at: defaultExpiry() });
+    const approve = useForm({ publish_at: toInputDate(new Date()), expired_at: defaultExpiry() });
     const revision = useForm({ revision_note: '' });
     const reject = useForm({ rejection_reason: '' });
+
+    const today = toInputDate(new Date());
+    const scheduled = approve.data.publish_at > today;
 
     const open = (type, post) => {
         approve.reset();
@@ -49,6 +55,15 @@ export default function Index({ posts }) {
         setDialog({ type, post });
     };
     const close = () => setDialog(null);
+
+    // Kalau tanggal mulai digeser melewati tanggal akhir, tanggal akhir ikut dimajukan
+    const changePublishAt = (value) => {
+        approve.setData((data) => ({
+            ...data,
+            publish_at: value,
+            expired_at: value && data.expired_at < value ? value : data.expired_at,
+        }));
+    };
 
     const submitApprove = (e) => {
         e.preventDefault();
@@ -85,9 +100,9 @@ export default function Index({ posts }) {
                 </span>
                 <p>
                     Postingan siswa yang menunggu keputusanmu. <b className="text-grape">Setujui</b> untuk
-                    menayangkannya di mading, <b className="text-grape">minta revisi</b> kalau masih bisa
-                    diperbaiki penulis, atau <b className="text-grape">tolak</b> kalau tidak layak tayang
-                    (penolakan bersifat final).
+                    menayangkannya di mading (sekarang atau pada tanggal yang kamu jadwalkan),{' '}
+                    <b className="text-grape">minta revisi</b> kalau masih bisa diperbaiki penulis, atau{' '}
+                    <b className="text-grape">tolak</b> kalau tidak layak tayang (penolakan bersifat final).
                 </p>
             </div>
 
@@ -190,24 +205,42 @@ export default function Index({ posts }) {
                 <Modal title="Setujui postingan" onClose={close}>
                     <form onSubmit={submitApprove}>
                         <p className="mb-4 text-sm text-ink/60">
-                            &quot;{dialog.post.title}&quot; akan langsung tayang. Tentukan sampai kapan
-                            postingan ini tampil di mading.
+                            Pilih kapan &quot;{dialog.post.title}&quot; mulai tayang dan sampai kapan tampil
+                            di mading. Kalau tanggal mulai di masa depan, postingan baru muncul pada hari itu.
                         </p>
                         {approve.errors.post && (
                             <p className="mb-3 rounded-2xl bg-brand/10 px-3 py-2 text-sm font-medium text-brand">
                                 {approve.errors.post}
                             </p>
                         )}
-                        <label className="mb-1 block text-sm font-semibold text-ink" htmlFor="expired_at">
+
+                        <label className="mb-1 block text-sm font-semibold text-ink" htmlFor="publish_at">
+                            Tayang mulai
+                        </label>
+                        <input id="publish_at" type="date" min={today}
+                            value={approve.data.publish_at}
+                            onChange={(e) => changePublishAt(e.target.value)}
+                            className={`${DATE_INPUT} mb-1`} />
+                        {approve.errors.publish_at && (
+                            <p className="mb-2 text-sm text-brand">{approve.errors.publish_at}</p>
+                        )}
+                        {scheduled && (
+                            <p className="mb-2 text-xs text-grape">
+                                Postingan disetujui sekarang, tapi baru tampil di mading pada tanggal ini.
+                            </p>
+                        )}
+
+                        <label className="mb-1 mt-3 block text-sm font-semibold text-ink" htmlFor="expired_at">
                             Tayang sampai
                         </label>
-                        <input id="expired_at" type="date" min={toInputDate(new Date())}
+                        <input id="expired_at" type="date" min={approve.data.publish_at || today}
                             value={approve.data.expired_at}
                             onChange={(e) => approve.setData('expired_at', e.target.value)}
-                            className="w-full rounded-xl border border-ink/15 px-3 py-2 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20" />
+                            className={DATE_INPUT} />
                         {approve.errors.expired_at && (
                             <p className="mt-1 text-sm text-brand">{approve.errors.expired_at}</p>
                         )}
+
                         <div className="mt-6 flex justify-end gap-2">
                             <button type="button" onClick={close}
                                 className="rounded-full border border-ink/20 px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5">
@@ -215,7 +248,7 @@ export default function Index({ posts }) {
                             </button>
                             <button type="submit" disabled={approve.processing}
                                 className="rounded-full bg-grape px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60">
-                                Setujui dan tayangkan
+                                {scheduled ? 'Setujui dan jadwalkan' : 'Setujui dan tayangkan'}
                             </button>
                         </div>
                     </form>

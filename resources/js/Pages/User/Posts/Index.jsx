@@ -8,6 +8,7 @@ const TABS = [
     ['all', 'Semua'],
     ['submitted', 'Menunggu review'],
     ['revision', 'Perlu revisi'],
+    ['scheduled', 'Terjadwal'],
     ['published', 'Tayang'],
     ['rejected', 'Ditolak'],
     ['suspended', 'Ditangguhkan'],
@@ -76,10 +77,10 @@ export default function Index({ posts }) {
                 <p className="py-12 text-center text-sm text-ink/60">Tidak ada postingan dengan status ini.</p>
             )}
 
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 {visible.map((p) => (
                     <article key={p.id}
-                        className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-ink/10 transition hover:shadow-md">
+                        className="flex min-w-0 flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-ink/10 transition hover:shadow-md">
                         {p.image_url
                             ? <img src={p.image_url} alt="" className="h-40 w-full object-cover" />
                             : <ImagePlaceholder />}
@@ -91,6 +92,17 @@ export default function Index({ posts }) {
                             </div>
 
                             <h2 className="line-clamp-2 text-lg leading-snug text-ink">{p.title}</h2>
+
+                            {p.display_status === 'scheduled' && (
+                                <div className="rounded-lg bg-sky-50 p-3 text-sm text-sky-800">
+                                    <p className="font-semibold">Sudah disetujui admin</p>
+                                    <p className="mt-0.5 text-ink/80">
+                                        {p.publish_label
+                                            ? `Postinganmu akan tampil di mading pada ${p.publish_label}.`
+                                            : 'Postinganmu akan tampil di mading sesuai tanggal yang dijadwalkan admin.'}
+                                    </p>
+                                </div>
+                            )}
 
                             {p.status === 'revision' && p.rejection_reason && (
                                 <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">

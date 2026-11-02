@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
+import ScheduledPosts from '../../../Components/ScheduledPosts';
 
 const pad = (n) => String(n).padStart(2, '0');
 const toInputDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -21,7 +22,7 @@ function Modal({ title, onClose, children }) {
     );
 }
 
-export default function Index({ posts, pinnedCount, maxPinned, filters }) {
+export default function Index({ posts, scheduled, pinnedCount, maxPinned, filters }) {
     const { errors } = usePage().props;
     const [editing, setEditing] = useState(null);
     const form = useForm({ expired_at: '' });
@@ -82,6 +83,7 @@ export default function Index({ posts, pinnedCount, maxPinned, filters }) {
                     {errors.post}
                 </p>
             )}
+            <ScheduledPosts items={scheduled} />
 
             <div className="overflow-x-auto rounded-3xl bg-white shadow-md ring-1 ring-ink/5">
                 <table className="w-full text-left text-sm">

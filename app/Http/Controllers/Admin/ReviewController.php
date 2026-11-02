@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Post;
 use App\Notifications\PostApproved;
 use App\Notifications\PostRejected;
@@ -43,14 +44,44 @@ class ReviewController extends Controller
         }
 
         $data = $request->validate([
-            'expired_at' => ['required', 'date', 'after_or_equal:today'],
+            // Tanggal mulai tayang boleh kosong: artinya tayang sekarang
+            'publish_at' => ['nullable', 'date', 'after_or_equal:today'],
+            'expired_at' => [
+                'required', 'date', 'after_or_equal:today',
+                // Akhir tayang tidak boleh sebelum mulai tayang
+                function ($attribute, $value, $fail) use ($request) {
+                    $start = $request->input('publish_at');
+
+                    if ($start && strtotime($start) !== false && strtotime($value) !== false
+                        && Carbon::parse($value)->lt(Carbon::parse($start))) {
+                        $fail('Tanggal akhir tayang tidak boleh sebelum tanggal mulai tayang.');
+                    }
+                },
+            ],
         ], [
+            'publish_at.date'           => 'Tanggal mulai tayang tidak valid.',
+            'publish_at.after_or_equal' => 'Tanggal mulai tayang tidak boleh sebelum hari ini.',
             'expired_at.required'       => 'Tanggal akhir tayang wajib diisi.',
             'expired_at.date'           => 'Tanggal akhir tayang tidak valid.',
             'expired_at.after_or_equal' => 'Tanggal akhir tayang tidak boleh sebelum hari ini.',
         ]);
 
-        $post->markPublished(Carbon::parse($data['expired_at'])->endOfDay());
+        // Hari ini atau kosong: tayang sekarang. Tanggal depan: tayang mulai pukul 00.00 hari itu.
+        $publishAt = null;
+        if (! empty($data['publish_at'])) {
+            $start = Carbon::parse($data['publish_at'])->startOfDay();
+            $publishAt = $start->isFuture() ? $start : null;
+        }
+
+        $post->markPublished(Carbon::parse($data['expired_at'])->endOfDay(), $publishAt);
+
+        $until = $post->expired_at->translatedFormat('d M Y');
+        if ($publishAt) {
+            ActivityLog::record('post.scheduled', $post,
+                'Tayang ' . $post->published_at->translatedFormat('d M Y') . ' sampai ' . $until);
+        } else {
+            ActivityLog::record('post.approved', $post, 'Tayang sampai ' . $until);
+        }
 
         if ($post->user?->wantsNotification('post_approved')) {
             $post->user->notify(new PostApproved($post));
@@ -75,6 +106,8 @@ class ReviewController extends Controller
 
         $post->markRejected($data['rejection_reason']);
 
+        ActivityLog::record('post.rejected', $post, $data['rejection_reason']);
+
         if ($post->user?->wantsNotification('post_rejected')) {
             $post->user->notify(new PostRejected($post));
         }
@@ -82,7 +115,7 @@ class ReviewController extends Controller
         return redirect()->route('admin.reviews.index');
     }
 
-        public function requestRevision(Request $request, Post $post)
+    public function requestRevision(Request $request, Post $post)
     {
         if ($post->status !== Post::SUBMITTED) {
             return back()->withErrors(['post' => 'Postingan ini sudah tidak menunggu review.']);
@@ -97,6 +130,8 @@ class ReviewController extends Controller
         ]);
 
         $post->markRevisionRequested($data['revision_note']);
+
+        ActivityLog::record('post.revision', $post, $data['revision_note']);
 
         // Notifikasi memakai preferensi yang sama dengan penolakan
         if ($post->user?->wantsNotification('post_rejected')) {

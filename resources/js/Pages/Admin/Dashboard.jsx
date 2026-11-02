@@ -10,13 +10,20 @@ const BARS = [
 
 const PILLS = [
     ['submitted', 'Menunggu', 'bg-brand text-white'],
+    ['scheduled', 'Terjadwal', 'bg-sky-600 text-white'],
     ['active', 'Tayang', 'bg-grape text-white'],
     ['archive', 'Arsip', 'bg-ink text-white'],
 ];
 
+const dayName = (date) =>
+    new Date(`${date}T00:00:00`).toLocaleDateString('id-ID', { weekday: 'short' });
+
+const fmtTime = (iso) =>
+    new Date(iso).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
 function Card({ className = '', children }) {
     return (
-        <section className={`rounded-3xl bg-white p-5 shadow-md ring-1 ring-ink/5 ${className}`}>
+        <section className={`min-w-0 rounded-3xl bg-white p-5 shadow-md ring-1 ring-ink/5 ${className}`}>
             {children}
         </section>
     );
@@ -57,7 +64,7 @@ function Donut({ percent }) {
     );
 }
 
-export default function Dashboard({ stats, queue }) {
+export default function Dashboard({ stats, queue, weekly = [], topPosts = [], categories = [], activity = [] }) {
     const user = usePage().props.auth?.user;
     const initial = (user?.name ?? '?').trim().charAt(0).toUpperCase();
 
@@ -65,6 +72,10 @@ export default function Dashboard({ stats, queue }) {
     const percent = processed ? Math.round((stats.active / processed) * 100) : 0;
     const maxBar = Math.max(...BARS.map(([k]) => stats[k]), 1);
     const topKey = BARS.reduce((a, [k]) => (stats[k] > stats[a] ? k : a), 'submitted');
+
+    const maxWeek = Math.max(...weekly.map((w) => w.count), 1);
+    const weekTotal = weekly.reduce((sum, w) => sum + w.count, 0);
+    const maxCat = Math.max(...categories.map((c) => c.count), 1);
 
     return (
         <AdminLayout title="Dashboard">
@@ -101,7 +112,7 @@ export default function Dashboard({ stats, queue }) {
                 </div>
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-4">
                 {/* Kartu admin */}
                 <div className="flex min-h-64 flex-col justify-between overflow-hidden rounded-3xl bg-linear-to-br from-grape to-brand p-5 text-white shadow-md">
                     <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 text-3xl font-bold">
@@ -160,6 +171,12 @@ export default function Dashboard({ stats, queue }) {
                             </Link>
                         </>
                     )}
+                    {stats.scheduled > 0 && (
+                        <p className="mt-5 border-t border-white/15 pt-4 text-sm text-white/70">
+                            {stats.scheduled} postingan sudah disetujui dan menunggu tanggal tayang.{' '}
+                            <Link href="/admin/posts" className="font-semibold text-white underline">Lihat jadwal</Link>
+                        </p>
+                    )}
                 </div>
 
                 {/* Pengguna */}
@@ -194,6 +211,100 @@ export default function Dashboard({ stats, queue }) {
                             ))}
                         </ul>
                     )}
+                </Card>
+            </div>
+
+            {/* Analitik ringkas + aktivitas admin */}
+            <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <Card>
+                    <CardHead title="Terbit 7 hari terakhir" />
+                    <div className="flex h-36 items-end justify-between gap-2">
+                        {weekly.map((w) => (
+                            <div key={w.date} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
+                                <span className="text-xs font-semibold text-ink">{w.count}</span>
+                                <div className="w-3 rounded-full bg-grape"
+                                    style={{ height: `${Math.max((w.count / maxWeek) * 70, 4)}%` }} />
+                                <span className="text-[11px] text-ink/60">{dayName(w.date)}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <p className="mt-3 text-xs text-ink/60">
+                        {weekTotal} postingan mulai tayang dalam 7 hari terakhir.
+                    </p>
+                </Card>
+
+                <Card>
+                    <CardHead title="Kategori teraktif" />
+                    {categories.length === 0 ? (
+                        <p className="text-sm text-ink/60">Belum ada postingan yang sedang tayang.</p>
+                    ) : (
+                        <ul className="space-y-3">
+                            {categories.map((c) => (
+                                <li key={c.name}>
+                                    <div className="mb-1 flex justify-between text-sm">
+                                        <span className="truncate font-semibold text-ink">{c.name}</span>
+                                        <span className="text-ink/60">{c.count}</span>
+                                    </div>
+                                    <div className="h-2 rounded-full bg-peach/40">
+                                        <div className="h-2 rounded-full bg-grape"
+                                            style={{ width: `${(c.count / maxCat) * 100}%` }} />
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Card>
+
+                <Card>
+                    <CardHead title="Postingan terpopuler" />
+                    {topPosts.length === 0 ? (
+                        <p className="text-sm text-ink/60">Belum ada suka atau komentar di postingan yang tayang.</p>
+                    ) : (
+                        <ul className="space-y-2">
+                            {topPosts.map((p, i) => (
+                                <li key={p.id}>
+                                    <Link href={`/posts/${p.slug}`}
+                                        className="flex items-center gap-3 rounded-2xl bg-cream/70 px-4 py-2.5 text-sm hover:bg-peach/30">
+                                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-grape text-xs font-bold text-white">
+                                            {i + 1}
+                                        </span>
+                                        <div className="min-w-0">
+                                            <p className="truncate font-semibold text-ink">{p.title}</p>
+                                            <p className="text-xs text-ink/60">
+                                                {p.author} &middot; {p.likes} suka &middot; {p.comments} komentar
+                                            </p>
+                                        </div>
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Card>
+
+                <Card>
+                    <CardHead title="Aktivitas admin terbaru" href="/admin/activity" />
+                    {activity.length === 0 ? (
+                        <p className="text-sm text-ink/60">Belum ada aktivitas yang tercatat.</p>
+                    ) : (
+                        <ul className="space-y-3">
+                            {activity.map((a) => (
+                                <li key={a.id} className="text-sm">
+                                    <p className="text-ink">
+                                        <b>{a.admin}</b> {a.label}
+                                        {a.title && <> &quot;{a.title}&quot;</>}
+                                    </p>
+                                    <p className="text-xs text-ink/60">
+                                        {fmtTime(a.created_at)}
+                                        {a.detail && <> &middot; {a.detail}</>}
+                                    </p>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    <Link href="/admin/activity"
+                        className="mt-4 inline-block text-sm font-semibold text-grape hover:underline">
+                        Lihat semua aktivitas
+                    </Link>
                 </Card>
             </div>
         </AdminLayout>

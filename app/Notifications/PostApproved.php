@@ -20,6 +20,19 @@ class PostApproved extends Notification
     {
         $until = $this->post->expired_at?->translatedFormat('d M Y');
 
+        if ($this->post->isScheduled()) {
+            $start = $this->post->published_at->translatedFormat('d M Y');
+
+            return [
+                'type'    => 'approved',
+                'post_id' => $this->post->id,
+                'title'   => 'Postingan disetujui dan dijadwalkan',
+                'message' => "\"{$this->post->title}\" disetujui dan akan tayang di mading pada {$start}"
+                    . ($until ? " sampai {$until}." : '.'),
+                'url'     => '/user/posts',
+            ];
+        }
+
         return [
             'type'    => 'approved',
             'post_id' => $this->post->id,
