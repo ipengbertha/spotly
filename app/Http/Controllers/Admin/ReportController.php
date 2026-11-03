@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Post;
 use App\Models\Report;
 use App\Notifications\PostSuspended;
@@ -120,6 +121,7 @@ class ReportController extends Controller
 
             return $ids;
         });
+         ActivityLog::record('report.upheld', $post, $reportIds->count() . ' laporan. ' . $reason);
 
         $post->user?->notify(new PostSuspended($post));
         $this->notifyReporters($reportIds);
@@ -148,6 +150,8 @@ class ReportController extends Controller
 
             return $ids;
         });
+        ActivityLog::record('report.dismissed', $post, $reportIds->count() . ' laporan' . ($note !== '' ? ". {$note}" : ''));
+
 
         $this->notifyReporters($reportIds);
 

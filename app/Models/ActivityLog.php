@@ -20,6 +20,9 @@ class ActivityLog extends Model
         'post.pinned'      => 'menyematkan',
         'post.unpinned'    => 'melepas pin',
         'post.expiry'      => 'mengubah masa tayang',
+        'post.republished' => 'menayangkan ulang',
+        'report.upheld'    => 'menangguhkan postingan karena laporan',
+        'report.dismissed' => 'menolak laporan pada',
     ];
 
     protected $fillable = ['admin_id', 'action', 'post_id', 'subject_title', 'detail'];

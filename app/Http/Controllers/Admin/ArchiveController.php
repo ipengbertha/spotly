@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Post;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -53,9 +54,12 @@ class ArchiveController extends Controller
             'expired_at.date'           => 'Tanggal akhir tayang tidak valid.',
             'expired_at.after_or_equal' => 'Tanggal akhir tayang tidak boleh sebelum hari ini.',
         ]);
+        $expiredAt = Carbon::parse($data['expired_at'])->endOfDay();
 
-        $post->markPublished(Carbon::parse($data['expired_at'])->endOfDay());
+        $post->markPublished($expiredAt);
         $post->setPinned(false);
+
+        ActivityLog::record('post.republished', $post, 'Sampai ' . $expiredAt->translatedFormat('d M Y'));
 
         return back();
     }
