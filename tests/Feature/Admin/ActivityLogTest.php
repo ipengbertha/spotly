@@ -6,6 +6,8 @@ use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\Post;
 use App\Models\User;
+use App\Models\Report;
+use Illuminate\Support\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -46,6 +48,17 @@ class ActivityLogTest extends TestCase
         return $this->buatPost(Post::PUBLISHED, [
             'published_at' => now()->subDay(),
             'expired_at'   => now()->addDays(10),
+        ]);
+    }
+
+        private function laporan(Post $post, string $alasan = 'hoax'): Report
+    {
+        $pelapor = User::factory()->create(['role' => 'user', 'is_active' => true]);
+
+        return Report::forceCreate([
+            'post_id' => $post->id,
+            'user_id' => $pelapor->id,
+            'reason'  => $alasan,
         ]);
     }
 
@@ -200,5 +213,74 @@ class ActivityLogTest extends TestCase
         $this->get('/admin/activity')->assertRedirect('/login');
 
         $this->actingAs($siswa)->get('/admin/activity')->assertForbidden();
+    }
+
+        public function test_publikasi_ulang_tercatat(): void
+    {
+        $admin = $this->admin();
+        $post = $this->buatPost(Post::ARCHIVED, [
+            'published_at' => now()->subDays(10),
+            'expired_at'   => now()->subDay(),
+        ]);
+        $tanggal = now()->addDays(14)->toDateString();
+
+        // Ganti URL/method ini kalau route:list menunjukkan yang lain
+        $this->actingAs($admin)->post("/admin/archive/{$post->id}/republish", [
+            'expired_at' => $tanggal,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(1, ActivityLog::count());
+
+        $log = ActivityLog::first();
+        $this->assertSame($admin->id, $log->admin_id);
+        $this->assertSame('post.republished', $log->action);
+        $this->assertSame($post->id, $log->post_id);
+        $this->assertSame($post->title, $log->subject_title);
+        $this->assertSame(
+            'Sampai ' . Carbon::parse($tanggal)->endOfDay()->translatedFormat('d M Y'),
+            $log->detail
+        );
+    }
+
+    public function test_tangguhkan_laporan_tercatat(): void
+    {
+        $admin = $this->admin();
+        $post = $this->tayang();
+        $this->laporan($post, 'hoax');
+        $this->laporan($post, 'spam');
+
+        $this->actingAs($admin)->post("/admin/reports/posts/{$post->id}/suspend", [
+            'reason'     => 'hoax',
+            'admin_note' => 'Mohon cek ulang sumbernya.',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(1, ActivityLog::count());
+
+        $log = ActivityLog::first();
+        $this->assertSame($admin->id, $log->admin_id);
+        $this->assertSame('report.upheld', $log->action);
+        $this->assertSame($post->id, $log->post_id);
+        $this->assertSame($post->title, $log->subject_title);
+        $this->assertSame('2 laporan. Informasi palsu atau hoaks. Mohon cek ulang sumbernya.', $log->detail);
+    }
+
+    public function test_tolak_laporan_tercatat(): void
+    {
+        $admin = $this->admin();
+        $post = $this->tayang();
+        $this->laporan($post, 'hoax');
+        $this->laporan($post, 'spam');
+
+        $this->actingAs($admin)->post("/admin/reports/posts/{$post->id}/dismiss", [
+            'admin_note' => 'Sudah dicek, informasinya benar.',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(1, ActivityLog::count());
+
+        $log = ActivityLog::first();
+        $this->assertSame($admin->id, $log->admin_id);
+        $this->assertSame('report.dismissed', $log->action);
+        $this->assertSame($post->id, $log->post_id);
+        $this->assertSame('2 laporan. Sudah dicek, informasinya benar.', $log->detail);
     }
 }
