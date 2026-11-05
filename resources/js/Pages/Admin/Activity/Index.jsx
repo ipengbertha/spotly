@@ -29,14 +29,14 @@ export default function Index({ logs, filters }) {
                         i
                     </span>
                     <p>
-                        Riwayat tindakan admin pada postingan: siapa melakukan apa dan kapan.
-                        Catatan tetap tersimpan walau postingannya sudah dihapus.
+                        Riwayat tindakan admin: siapa melakukan apa dan kapan.
+                        Catatan tetap tersimpan walau postingan, akun, atau kategorinya sudah dihapus.
                     </p>
                 </div>
 
                 <form onSubmit={search} className="flex w-full items-center gap-2 sm:w-auto">
                     <input value={q} onChange={(e) => setQ(e.target.value)}
-                        placeholder="Cari judul, admin, atau catatan..."
+                        placeholder="Cari nama, admin, atau catatan..."
                         aria-label="Cari aktivitas"
                         className="w-full rounded-full border border-ink/10 bg-white px-4 py-2.5 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20 sm:w-72" />
                     <button type="submit"

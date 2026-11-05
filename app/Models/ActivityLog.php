@@ -23,6 +23,13 @@ class ActivityLog extends Model
         'post.republished' => 'menayangkan ulang',
         'report.upheld'    => 'menangguhkan postingan karena laporan',
         'report.dismissed' => 'menolak laporan pada',
+        'comment.deleted'           => 'menghapus komentar dari',
+        'comment.reports_dismissed' => 'menolak laporan pada komentar dari',
+        'user.deactivated'          => 'menonaktifkan akun',
+        'user.activated'            => 'mengaktifkan akun',
+        'category.created'          => 'menambah kategori',
+        'category.renamed'          => 'mengubah nama kategori',
+        'category.deleted'          => 'menghapus kategori',
     ];
 
     protected $fillable = ['admin_id', 'action', 'post_id', 'subject_title', 'detail'];
@@ -44,6 +51,25 @@ class ActivityLog extends Model
                 'action'        => $action,
                 'post_id'       => $post?->id,
                 'subject_title' => $post?->title,
+                'detail'        => $detail !== null ? Str::limit($detail, 500, '') : null,
+            ]);
+        } catch (Throwable $e) {
+            report($e);
+        }
+    }
+
+        /**
+     * Seperti record(), tapi untuk aksi yang tidak terkait postingan
+     * (akun, kategori, komentar). Subjeknya ditampilkan di kolom judul.
+     */
+    public static function recordSubject(string $action, string $subject, ?string $detail = null): void
+    {
+        try {
+            static::create([
+                'admin_id'      => auth()->id(),
+                'action'        => $action,
+                'post_id'       => null,
+                'subject_title' => Str::limit($subject, 250, ''),
                 'detail'        => $detail !== null ? Str::limit($detail, 500, '') : null,
             ]);
         } catch (Throwable $e) {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\ActivityLog;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -56,7 +57,9 @@ class CategoryController extends Controller
             return back()->withErrors(['name' => 'Nama kategori tidak valid atau terlalu mirip dengan kategori lain.']);
         }
 
-        Category::create(['name' => $data['name'], 'slug' => $slug]);
+        $category = Category::create(['name' => $data['name'], 'slug' => $slug]);
+
+        ActivityLog::recordSubject('category.created', $category->name);
 
         return redirect()->route('admin.categories.index');
     }
@@ -76,7 +79,13 @@ class CategoryController extends Controller
             return back()->withErrors(['name' => 'Nama kategori tidak valid atau terlalu mirip dengan kategori lain.']);
         }
 
+        $old = $category->name;
+
         $category->update(['name' => $data['name'], 'slug' => $slug]);
+
+        if ($old !== $data['name']) {
+            ActivityLog::recordSubject('category.renamed', $data['name'], 'Sebelumnya "' . $old . '"');
+        }
 
         return redirect()->route('admin.categories.index');
     }
@@ -95,8 +104,11 @@ class CategoryController extends Controller
             'move_to.not_in'  => 'Kategori tujuan tidak boleh sama dengan kategori yang dihapus.',
         ]);
 
+        $name  = $category->name;
+        $moved = null;
+
         try {
-            DB::transaction(function () use ($category, $data) {
+            DB::transaction(function () use ($category, $data, &$moved) {
                 $stuck = []; // postingan tanpa kategori tambahan: perlu tujuan baru
 
                 $primaryIds = DB::table('posts')->where('category_id', $category->id)->pluck('id');
@@ -124,6 +136,7 @@ class CategoryController extends Controller
                         : Category::fallback();
 
                     DB::table('posts')->whereIn('id', $stuck)->update(['category_id' => $target->id]);
+                    $moved = count($stuck) . ' postingan dipindahkan ke "' . $target->name . '"';
                 }
 
                 // Lepas kategori ini dari postingan yang memakainya sebagai kategori tambahan
@@ -136,6 +149,8 @@ class CategoryController extends Controller
                 'category' => 'Kategori gagal dihapus karena baru saja dipakai postingan lain. Coba lagi.',
             ]);
         }
+
+        ActivityLog::recordSubject('category.deleted', $name, $moved);
 
         return redirect()->route('admin.categories.index');
     }

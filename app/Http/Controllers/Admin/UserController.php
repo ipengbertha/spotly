@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -46,13 +47,20 @@ class UserController extends Controller
         return $this->setActive($user, true);
     }
 
-    private function setActive(User $user, bool $active)
+        private function setActive(User $user, bool $active)
     {
         if ($user->isAdmin()) {
             return back()->withErrors(['user' => 'Akun admin tidak bisa diubah dari halaman ini.']);
         }
 
+        // Hanya dicatat kalau statusnya benar-benar berubah
+        $changed = (bool) $user->is_active !== $active;
+
         $user->setActive($active);
+
+        if ($changed) {
+            ActivityLog::recordSubject($active ? 'user.activated' : 'user.deactivated', $user->name);
+        }
 
         return back();
     }

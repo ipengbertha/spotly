@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Comment;
 use App\Models\CommentReport;
+use App\Models\ActivityLog;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -76,22 +78,40 @@ class CommentController extends Controller
 
     // Admin boleh menghapus komentar apa pun, termasuk di postingan yang sudah tidak tayang
     // (moderasi tidak boleh terhalang status postingan). Balasan di bawahnya ikut terhapus.
-    public function destroy(Comment $comment)
+        public function destroy(Comment $comment)
     {
+        $comment->loadMissing(['user:id,name', 'post:id,title']);
+
+        $detail = 'Pada "' . ($comment->post?->title ?? 'postingan terhapus') . '": ' . Str::limit($comment->content, 120);
+        if ($comment->replies()->exists()) {
+            $detail .= ' (balasannya ikut terhapus)';
+        }
+
+        // Dicatat sebelum dihapus supaya isinya masih terbaca
+        ActivityLog::recordSubject('comment.deleted', $comment->user?->name ?? 'pengguna terhapus', $detail);
+
         $comment->delete();
 
         return back();
     }
 
-    // Laporan dinilai tidak beralasan: semua laporan yang menunggu ditandai selesai (dismissed),
-    // komentarnya tetap tampil. Mengubah lewat query karena status dan reviewed_* tidak fillable.
     public function dismissReports(Request $request, Comment $comment)
     {
-        $comment->reports()->pending()->update([
+        $count = $comment->reports()->pending()->update([
             'status'      => CommentReport::DISMISSED,
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
         ]);
+
+        if ($count > 0) {
+            $comment->loadMissing('user:id,name');
+
+            ActivityLog::recordSubject(
+                'comment.reports_dismissed',
+                $comment->user?->name ?? 'pengguna terhapus',
+                $count . ' laporan. Komentar: ' . Str::limit($comment->content, 100)
+            );
+        }
 
         return back();
     }
