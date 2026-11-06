@@ -30,6 +30,10 @@ class ActivityLog extends Model
         'category.created'          => 'menambah kategori',
         'category.renamed'          => 'mengubah nama kategori',
         'category.deleted'          => 'menghapus kategori',
+        'poll.created'              => 'membuat polling',
+        'poll.extended'             => 'mengubah batas waktu polling',
+        'poll.closed'               => 'menutup polling',
+        'poll.deleted'              => 'menghapus polling',
     ];
 
     protected $fillable = ['admin_id', 'action', 'post_id', 'subject_title', 'detail'];

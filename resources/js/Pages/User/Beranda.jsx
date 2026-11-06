@@ -2,6 +2,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import UserLayout from '../../Layouts/UserLayout';
 import AdminLayout from '../../Layouts/AdminLayout';
 import PostCard from '../../Components/PostCard';
+import PollCard from '../../Components/PollCard'
 
 function Chip({ href, active, children }) {
     return (
@@ -22,7 +23,7 @@ const PERIODS = [
     { value: 90, label: '3 bulan' },
 ];
 
-export default function Beranda({ posts, filters, isAdmin, categories = [] }) {
+export default function Beranda({ posts, filters, isAdmin, categories = [], poll =  null }) {
     const { auth } = usePage().props;
     const Layout = isAdmin ? AdminLayout : UserLayout;
     const catName = categories.find((c) => String(c.id) === String(filters.category))?.name;
@@ -82,6 +83,7 @@ export default function Beranda({ posts, filters, isAdmin, categories = [] }) {
                 )}
             </div>
 
+        {!isFiltering && poll && <PollCard poll={poll} />}
             {/* Filter kategori */}
             <div className="mb-3 flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
                 <Chip href={buildHref({ category: null, spotlight: null })} active={noCategory}>Semua</Chip>

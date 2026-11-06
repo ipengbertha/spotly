@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Post;
 use App\Models\Setting;
+use App\Models\Poll;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -61,7 +62,7 @@ class FeedController extends Controller
             ->paginate(Setting::perPage())
             ->withQueryString()
             ->through(fn (Post $p) => $p->toCard());
-
+            $poll = Poll::open()->with('options')->latest('id')->first();
         return Inertia::render('User/Beranda', [
             'posts'      => $posts,
             'filters'    => [
@@ -72,6 +73,7 @@ class FeedController extends Controller
             ],
             'isAdmin'    => $request->user()->isAdmin(),
             'categories' => Category::orderBy('name')->get(['id', 'name']),
+            'poll'       => $poll?->forViewer($request->user()),
         ]);
     }
 }

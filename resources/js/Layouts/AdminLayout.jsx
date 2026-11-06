@@ -13,6 +13,7 @@ const ICONS = {
     chat:    'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
     clock:   'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2',
     pulse:   'M22 12h-4l-3 9L9 3l-3 9H2',
+    poll:    'M18 20V10M12 20V4M6 20v-6',
     archive: 'M3 4h18v4H3zM5 8v12h14V8M10 12h4',
     tag:     'M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8zM7.5 7.5h.01',
     users:   'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8',
@@ -117,8 +118,9 @@ export default function AdminLayout({ title, children }) {
     const isUsers = url.startsWith('/admin/users');
     const isArchive = url.startsWith('/admin/archive');
     const isActivity = u.pathname.startsWith('/admin/activity');
+    const isPolls = u.pathname.startsWith('/admin/polls');
     const isNotif = u.pathname.startsWith('/notifications');
-        const isSettings = u.pathname.startsWith('/settings');
+    const isSettings = u.pathname.startsWith('/settings');
     const unread = props.unreadNotifications ?? 0;
     const pendingReports = props.pendingReports ?? 0;
     const initial = (user?.name ?? '?').trim().charAt(0).toUpperCase();
@@ -143,6 +145,7 @@ export default function AdminLayout({ title, children }) {
             { icon: 'tag',     label: 'Kategori',  href: '/admin/categories', active: isCategories },
             { icon: 'users',   label: 'Pengguna',  href: '/admin/users', active: isUsers },
             { icon: 'pulse',   label: 'Aktivitas', href: '/admin/activity', active: isActivity },
+            { icon: 'poll',    label: 'Polling',   href: '/admin/polls', active: isPolls },
         ]],
         ['Akun', [
             { icon: 'bell',    label: 'Notifikasi', href: '/notifications', active: isNotif, badge: unread },

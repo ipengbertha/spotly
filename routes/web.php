@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\ActivityLogController as AdminActivityLogController;
+use App\Http\Controllers\Admin\PollController as AdminPollController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\BookmarkController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\PostShowController;
 use App\Http\Controllers\ReactionController;
 use App\Http\Controllers\PostImageController;
+use App\Http\Controllers\PollVoteController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\FeedController;
 use App\Http\Controllers\User\HistoryController;
@@ -75,6 +77,11 @@ Route::middleware(['auth', EnsureUserIsActive::class, 'role:user'])->group(funct
     Route::post('/posts/{post}/report', [ReportController::class, 'store'])->name('posts.report');
     Route::get('/laporan/{report}', [ReportController::class, 'show'])->name('reports.show');
 });
+
+// Polling: hanya siswa yang memilih. Tamu diarahkan ke login, admin mendapat 403.
+Route::post('/polls/{poll}/vote', [PollVoteController::class, 'store'])
+    ->middleware(['auth', EnsureUserIsActive::class, 'role:user'])
+    ->name('polls.vote');
 
 // Hanya untuk tamu (yang belum login)
 Route::middleware('guest')->group(function () {
@@ -152,6 +159,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
     Route::patch('/users/{user}/deactivate', [AdminUserController::class, 'deactivate'])->name('users.deactivate');
     Route::patch('/users/{user}/activate', [AdminUserController::class, 'activate'])->name('users.activate');
+
+    Route::get('/polls', [AdminPollController::class, 'index'])->name('polls.index');
+    Route::post('/polls', [AdminPollController::class, 'store'])->name('polls.store');
+    Route::patch('/polls/{poll}/end', [AdminPollController::class, 'updateEnd'])->name('polls.end');
+    Route::post('/polls/{poll}/close', [AdminPollController::class, 'close'])->name('polls.close');
+    Route::delete('/polls/{poll}', [AdminPollController::class, 'destroy'])->name('polls.destroy');
 });
 
 // Area User
