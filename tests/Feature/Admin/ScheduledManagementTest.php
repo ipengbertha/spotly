@@ -158,4 +158,35 @@ class ScheduledManagementTest extends TestCase
         $this->assertNotNull($notif);
         $this->assertStringContainsString('sudah tayang', $notif->data['message']);
     }
+        public function test_batalkan_jadwal_mengirim_notifikasi_ke_penulis(): void
+    {
+        $post = $this->terjadwal();
+        $tanggal = $post->published_at->translatedFormat('d M Y');
+
+        $this->actingAs($this->admin())
+            ->post("/admin/posts/{$post->id}/unschedule")
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(1, $post->user->notifications()->count());
+
+        $notif = $post->user->notifications()->first();
+
+        $this->assertSame('unscheduled', $notif->data['type']);
+        $this->assertSame($post->id, $notif->data['post_id']);
+        $this->assertSame('Jadwal tayang dibatalkan', $notif->data['title']);
+        $this->assertStringContainsString($post->title, $notif->data['message']);
+        $this->assertStringContainsString($tanggal, $notif->data['message']);
+        $this->assertSame('/user/posts', $notif->data['url']);
+    }
+
+    public function test_batalkan_jadwal_yang_gagal_tidak_mengirim_notifikasi(): void
+    {
+        $post = $this->tayang(); // sudah tayang, bukan terjadwal
+
+        $this->actingAs($this->admin())
+            ->post("/admin/posts/{$post->id}/unschedule")
+            ->assertSessionHasErrors('post');
+
+        $this->assertSame(0, $post->user->notifications()->count());
+    }
 }

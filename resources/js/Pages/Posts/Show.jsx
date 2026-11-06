@@ -42,6 +42,7 @@ export default function Show({ post, viewer, related = [] }) {
     const fallback = viewer === 'guest' ? '/' : '/user/beranda';
     const back = () => (window.history.length > 1 ? window.history.back() : router.visit(fallback));
     const date = formatDate(post.published_at);
+     const upcoming = post.published_at ? new Date(post.published_at) > new Date() : false;
     // Ukuran teks dan mode gelap: hanya untuk area artikel, diingat di browser
     const [prefs, setPrefs] = useReaderPrefs();
     const dark = prefs.dark;
@@ -123,7 +124,7 @@ export default function Show({ post, viewer, related = [] }) {
                                         {post.author_id
                                             ? <Link href={`/profil/${post.author_id}`} className={`font-semibold hover:text-brand hover:underline ${dark ? 'text-white' : 'text-ink'}`}>{post.author ?? 'Penulis'}</Link>
                                             : (post.author ?? 'Penulis')}
-                                        {date && <> &middot; Tayang {date}</>}
+                                        {date && <> &middot; {upcoming ? 'Akan tayang' : 'Tayang'} {date}</>}
                                         {post.reading_minutes && <> &middot; {post.reading_minutes} menit baca</>}
                                     </p>
                                 </div>

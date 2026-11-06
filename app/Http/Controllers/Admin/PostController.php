@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Post;
+use App\Notifications\PostScheduleCancelled;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -140,15 +141,20 @@ class PostController extends Controller
     }
 
     // Batalkan jadwal: postingan terjadwal kembali ke antrean review
-    public function unschedule(Post $post)
+        public function unschedule(Post $post)
     {
         if (! $post->isScheduled()) {
             return back()->withErrors(['post' => 'Hanya postingan terjadwal yang bisa dibatalkan jadwalnya.']);
         }
 
+        // Diambil sebelum dibatalkan, karena cancelSchedule() bisa mengubah tanggalnya
+        $scheduledLabel = $post->published_at?->translatedFormat('d M Y');
+
         $post->cancelSchedule();
 
         ActivityLog::record('post.unscheduled', $post, 'Kembali ke antrean review');
+
+        $post->user?->notify(new PostScheduleCancelled($post, $scheduledLabel));
 
         return back();
     }

@@ -283,4 +283,106 @@ class ActivityLogTest extends TestCase
         $this->assertSame($post->id, $log->post_id);
         $this->assertSame('2 laporan. Sudah dicek, informasinya benar.', $log->detail);
     }
+
+        public function test_akun_dinonaktifkan_dan_diaktifkan_tercatat(): void
+    {
+        $admin = $this->admin();
+        $siswa = User::factory()->create(['role' => 'user', 'is_active' => true, 'name' => 'Budi Siswa']);
+
+        $this->actingAs($admin);
+
+        $this->patch("/admin/users/{$siswa->id}/deactivate")->assertSessionHasNoErrors();
+        $this->patch("/admin/users/{$siswa->id}/deactivate"); // sudah nonaktif: tidak dicatat lagi
+        $this->patch("/admin/users/{$siswa->id}/activate")->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            ['user.deactivated', 'user.activated'],
+            ActivityLog::orderBy('id')->pluck('action')->all()
+        );
+
+        $log = ActivityLog::orderBy('id')->first();
+        $this->assertSame($admin->id, $log->admin_id);
+        $this->assertSame('Budi Siswa', $log->subject_title);
+        $this->assertNull($log->post_id);
+    }
+
+    public function test_akun_admin_tidak_bisa_dinonaktifkan_dan_tidak_tercatat(): void
+    {
+        $admin = $this->admin();
+        $adminLain = $this->admin('Admin Lain');
+
+        $this->actingAs($admin)
+            ->patch("/admin/users/{$adminLain->id}/deactivate")
+            ->assertSessionHasErrors('user');
+
+        $this->assertSame(0, ActivityLog::count());
+    }
+
+    public function test_tambah_kategori_tercatat(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)
+            ->post('/admin/categories', ['name' => 'Olahraga'])
+            ->assertSessionHasNoErrors();
+
+        $log = ActivityLog::first();
+        $this->assertSame($admin->id, $log->admin_id);
+        $this->assertSame('category.created', $log->action);
+        $this->assertSame('Olahraga', $log->subject_title);
+        $this->assertNull($log->post_id);
+    }
+
+    public function test_ubah_nama_kategori_tercatat_dan_nama_sama_tidak(): void
+    {
+        $kategori = Category::forceCreate(['name' => 'Sport', 'slug' => 'sport']);
+
+        $this->actingAs($this->admin());
+
+        $this->put("/admin/categories/{$kategori->id}", ['name' => 'Sport']); // tidak berubah
+        $this->assertSame(0, ActivityLog::count());
+
+        $this->put("/admin/categories/{$kategori->id}", ['name' => 'Olahraga'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(1, ActivityLog::count());
+
+        $log = ActivityLog::first();
+        $this->assertSame('category.renamed', $log->action);
+        $this->assertSame('Olahraga', $log->subject_title);
+        $this->assertSame('Sebelumnya "Sport"', $log->detail);
+    }
+
+    public function test_hapus_kategori_mencatat_postingan_yang_dipindahkan(): void
+    {
+        $post = $this->tayang();
+        $asal = Category::findOrFail($post->category_id);
+        $nama = $asal->name;
+        $tujuan = Category::forceCreate(['name' => 'Tujuan Pindah', 'slug' => 'tujuan-pindah']);
+
+        $this->actingAs($this->admin())
+            ->delete("/admin/categories/{$asal->id}", ['move_to' => $tujuan->id])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($tujuan->id, $post->fresh()->category_id);
+
+        $log = ActivityLog::first();
+        $this->assertSame('category.deleted', $log->action);
+        $this->assertSame($nama, $log->subject_title);
+        $this->assertSame('1 postingan dipindahkan ke "Tujuan Pindah"', $log->detail);
+    }
+
+    public function test_hapus_kategori_kosong_tercatat_tanpa_catatan(): void
+    {
+        $kategori = Category::forceCreate(['name' => 'Kosong', 'slug' => 'kosong']);
+
+        $this->actingAs($this->admin())
+            ->delete("/admin/categories/{$kategori->id}")
+            ->assertSessionHasNoErrors();
+
+        $log = ActivityLog::first();
+        $this->assertSame('category.deleted', $log->action);
+        $this->assertSame('Kosong', $log->subject_title);
+        $this->assertNull($log->detail);
+    }
 }
