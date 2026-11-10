@@ -64,7 +64,7 @@ function Donut({ percent }) {
     );
 }
 
-export default function Dashboard({ stats, queue, weekly = [], topPosts = [], categories = [], activity = [] }) {
+export default function Dashboard({ stats, queue, weekly = [], topPosts = [], categories = [], activity = [], contributors = [] }) {
     const user = usePage().props.auth?.user;
     const initial = (user?.name ?? '?').trim().charAt(0).toUpperCase();
 
@@ -76,6 +76,7 @@ export default function Dashboard({ stats, queue, weekly = [], topPosts = [], ca
     const maxWeek = Math.max(...weekly.map((w) => w.count), 1);
     const weekTotal = weekly.reduce((sum, w) => sum + w.count, 0);
     const maxCat = Math.max(...categories.map((c) => c.count), 1);
+    const maxContrib = Math.max(...contributors.map((c) => c.count), 1);
 
     return (
         <AdminLayout title="Dashboard">
@@ -281,7 +282,29 @@ export default function Dashboard({ stats, queue, weekly = [], topPosts = [], ca
                     )}
                 </Card>
 
-                <Card>
+                                <Card>
+                    <CardHead title="Kontributor teratas" />
+                    {contributors.length === 0 ? (
+                        <p className="text-sm text-ink/60">Belum ada karya yang terbit.</p>
+                    ) : (
+                        <ul className="space-y-3">
+                            {contributors.map((c, i) => (
+                                <li key={c.id}>
+                                    <div className="mb-1 flex justify-between gap-3 text-sm">
+                                        <span className="truncate font-semibold text-ink">{i + 1}. {c.name}</span>
+                                        <span className="shrink-0 text-ink/60">{c.count} karya</span>
+                                    </div>
+                                    <div className="h-2 rounded-full bg-peach/40">
+                                        <div className="h-2 rounded-full bg-brand"
+                                            style={{ width: `${(c.count / maxContrib) * 100}%` }} />
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Card>
+
+                <Card className="lg:col-span-2">
                     <CardHead title="Aktivitas admin terbaru" href="/admin/activity" />
                     {activity.length === 0 ? (
                         <p className="text-sm text-ink/60">Belum ada aktivitas yang tercatat.</p>

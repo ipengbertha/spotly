@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Post;
 use App\Models\Setting;
 use App\Models\Poll;
+use App\Models\ContributorAwards;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -74,6 +75,7 @@ class FeedController extends Controller
             'isAdmin'    => $request->user()->isAdmin(),
             'categories' => Category::orderBy('name')->get(['id', 'name']),
             'poll'       => $poll?->forViewer($request->user()),
+            'contributors' => ContributorAward::latestForFeed(),
         ]);
     }
 }

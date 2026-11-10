@@ -31,6 +31,7 @@ class DashboardController extends Controller
             'weekly'     => $this->weekly(),
             'topPosts'   => $this->topPosts(),
             'categories' => $this->categories(),
+            'contributors' => $this->contributors(),
             'activity'   => ActivityLog::with('admin:id,name')
                 ->latest()
                 ->latest('id')
@@ -98,6 +99,30 @@ class DashboardController extends Controller
         return $rows
             ->map(fn ($r) => [
                 'name'  => $names[$r->category_id] ?? 'Tanpa kategori',
+                'count' => (int) $r->total,
+            ])
+            ->values()
+            ->all();
+    }
+        // Siswa dengan karya terbit terbanyak. Postingan terjadwal (tanggal tayang
+    // belum tiba) tidak dihitung, arsip tetap dihitung karena pernah terbit.
+    private function contributors(): array
+    {
+        $rows = Post::whereIn('status', [Post::PUBLISHED, Post::ARCHIVED])
+            ->where('published_at', '<=', now())
+            ->select('user_id', DB::raw('count(*) as total'))
+            ->groupBy('user_id')
+            ->orderByDesc('total')
+            ->orderBy('user_id')
+            ->limit(5)
+            ->get();
+
+        $names = User::whereIn('id', $rows->pluck('user_id'))->pluck('name', 'id');
+
+        return $rows
+            ->map(fn ($r) => [
+                'id'    => $r->user_id,
+                'name'  => $names[$r->user_id] ?? 'Pengguna dihapus',
                 'count' => (int) $r->total,
             ])
             ->values()

@@ -22,7 +22,8 @@ const ICONS = {
     logout:  'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9',
     menu:    'M4 6h16M4 12h16M4 18h16',
     close:   'M6 6l12 12M18 6L6 18',
-    search:  'M11 4a7 7 0 100 14 7 7 0 000-14zM21 21l-4.3-4.3'
+    search:  'M11 4a7 7 0 100 14 7 7 0 000-14zM21 21l-4.3-4.3',
+    trophy: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0zM17 5h3v2a3 3 0 01-3 3M7 5H4v2a3 3 0 003 3',
     
 };
 
@@ -119,6 +120,7 @@ export default function AdminLayout({ title, children }) {
     const isArchive = url.startsWith('/admin/archive');
     const isActivity = u.pathname.startsWith('/admin/activity');
     const isPolls = u.pathname.startsWith('/admin/polls');
+    const isContributors = u.pathname.startsWith('/admin/contributors');
     const isNotif = u.pathname.startsWith('/notifications');
     const isSettings = u.pathname.startsWith('/settings');
     const unread = props.unreadNotifications ?? 0;
@@ -146,6 +148,7 @@ export default function AdminLayout({ title, children }) {
             { icon: 'users',   label: 'Pengguna',  href: '/admin/users', active: isUsers },
             { icon: 'pulse',   label: 'Aktivitas', href: '/admin/activity', active: isActivity },
             { icon: 'poll',    label: 'Polling',   href: '/admin/polls', active: isPolls },
+            { icon: 'trophy', label: 'Kontributor', href: '/admin/contributors', active: isContributors },
         ]],
         ['Akun', [
             { icon: 'bell',    label: 'Notifikasi', href: '/notifications', active: isNotif, badge: unread },

@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\ActivityLogController as AdminActivityLogController;
 use App\Http\Controllers\Admin\PollController as AdminPollController;
+use App\Http\Controllers\Admin\ContributorController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\BookmarkController;
@@ -165,6 +166,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::patch('/polls/{poll}/end', [AdminPollController::class, 'updateEnd'])->name('polls.end');
     Route::post('/polls/{poll}/close', [AdminPollController::class, 'close'])->name('polls.close');
     Route::delete('/polls/{poll}', [AdminPollController::class, 'destroy'])->name('polls.destroy');
+
+    Route::get('contributors', [ContributorController::class, 'index']) ->name('contributors.index');
+    Route::post('contributors', [ContributorController::class, 'store'])->name('contributors.store');
+    Route::delete('contributors/{period}', [ContributorController::class, 'destroy']) ->name('contributors.destroy')
+        ->where('period', '\d{4}-(0[1-9]|1[0-2])');
 });
 
 // Area User
