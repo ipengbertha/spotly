@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Category;
+use App\Models\ContributorAward;
 use App\Models\Post;
 use App\Models\User;
+use App\Services\ContributorRanking;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -28,11 +30,11 @@ class DashboardController extends Controller
                 ->oldest('updated_at')
                 ->limit(5)
                 ->get(['id', 'user_id', 'category_id', 'title', 'status', 'updated_at']),
-            'weekly'     => $this->weekly(),
-            'topPosts'   => $this->topPosts(),
-            'categories' => $this->categories(),
+            'weekly'       => $this->weekly(),
+            'topPosts'     => $this->topPosts(),
+            'categories'   => $this->categories(),
             'contributors' => $this->contributors(),
-            'activity'   => ActivityLog::with('admin:id,name')
+            'activity'     => ActivityLog::with('admin:id,name')
                 ->latest()
                 ->latest('id')
                 ->limit(5)
@@ -104,28 +106,32 @@ class DashboardController extends Controller
             ->values()
             ->all();
     }
-        // Siswa dengan karya terbit terbanyak. Postingan terjadwal (tanggal tayang
-    // belum tiba) tidak dihitung, arsip tetap dihitung karena pernah terbit.
+
+    // Kontributor bulan lalu (sampai 5 siswa yang memenuhi syarat), memakai aturan yang
+    // sama dengan halaman Kontributor, plus status sudah/belum diumumkan.
     private function contributors(): array
     {
-        $rows = Post::whereIn('status', [Post::PUBLISHED, Post::ARCHIVED])
-            ->where('published_at', '<=', now())
-            ->select('user_id', DB::raw('count(*) as total'))
-            ->groupBy('user_id')
-            ->orderByDesc('total')
-            ->orderBy('user_id')
-            ->limit(5)
-            ->get();
+        $month  = now()->subMonthNoOverflow()->startOfMonth();
+        $period = $month->format('Y-m');
 
-        $names = User::whereIn('id', $rows->pluck('user_id'))->pluck('name', 'id');
+        $candidates   = ContributorRanking::candidates(ContributorRanking::forMonth($month))->values();
+        $announcedIds = ContributorAward::where('period', $period)->pluck('user_id')->map(fn ($id) => (int) $id)->all();
+        $names        = User::whereIn('id', $candidates->pluck('user_id'))->pluck('name', 'id');
 
-        return $rows
-            ->map(fn ($r) => [
-                'id'    => $r->user_id,
-                'name'  => $names[$r->user_id] ?? 'Pengguna dihapus',
-                'count' => (int) $r->total,
-            ])
-            ->values()
-            ->all();
+        return [
+            'period'    => $period,
+            'label'     => ContributorAward::labelFor($period),
+            'announced' => ! empty($announcedIds),
+            'items'     => $candidates
+                ->map(fn ($c) => [
+                    'id'          => $c['user_id'],
+                    'rank'        => $c['rank'],
+                    'name'        => $names[$c['user_id']] ?? 'Pengguna dihapus',
+                    'posts_count' => $c['posts_count'],
+                    'likes_count' => $c['likes_count'],
+                    'announced'   => in_array((int) $c['user_id'], $announcedIds, true),
+                ])
+                ->all(),
+        ];
     }
 }

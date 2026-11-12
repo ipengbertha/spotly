@@ -15,6 +15,11 @@ const PILLS = [
     ['archive', 'Arsip', 'bg-ink text-white'],
 ];
 
+// Warna peringkat sama dengan podium di Beranda siswa
+const RANK_COLORS = { 1: '#FFC83D', 2: '#5EE0C8', 3: '#FF8A6B' };
+const RANK_EXTRA = ['#B79CFF', '#FF7EB6'];
+const rankColor = (rank, i) => RANK_COLORS[rank] ?? RANK_EXTRA[i % RANK_EXTRA.length];
+
 const dayName = (date) =>
     new Date(`${date}T00:00:00`).toLocaleDateString('id-ID', { weekday: 'short' });
 
@@ -64,7 +69,10 @@ function Donut({ percent }) {
     );
 }
 
-export default function Dashboard({ stats, queue, weekly = [], topPosts = [], categories = [], activity = [], contributors = [] }) {
+export default function Dashboard({
+    stats, queue, weekly = [], topPosts = [], categories = [], activity = [],
+    contributors = { items: [] },
+}) {
     const user = usePage().props.auth?.user;
     const initial = (user?.name ?? '?').trim().charAt(0).toUpperCase();
 
@@ -76,7 +84,8 @@ export default function Dashboard({ stats, queue, weekly = [], topPosts = [], ca
     const maxWeek = Math.max(...weekly.map((w) => w.count), 1);
     const weekTotal = weekly.reduce((sum, w) => sum + w.count, 0);
     const maxCat = Math.max(...categories.map((c) => c.count), 1);
-    const maxContrib = Math.max(...contributors.map((c) => c.count), 1);
+
+    const contribItems = contributors.items ?? [];
 
     return (
         <AdminLayout title="Dashboard">
@@ -282,26 +291,50 @@ export default function Dashboard({ stats, queue, weekly = [], topPosts = [], ca
                     )}
                 </Card>
 
-                                <Card>
-                    <CardHead title="Kontributor teratas" />
-                    {contributors.length === 0 ? (
-                        <p className="text-sm text-ink/60">Belum ada karya yang terbit.</p>
+                {/* Kontributor bulan lalu: 5 teratas + status pengumuman */}
+                <Card>
+                    <CardHead title="Kontributor teratas" href="/admin/contributors" />
+                    <div className="-mt-2 mb-4 flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-ink/60">{contributors.label}</span>
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            contributors.announced ? 'bg-grape/10 text-grape' : 'bg-brand/10 text-brand'}`}>
+                            {contributors.announced ? 'Sudah diumumkan' : 'Belum diumumkan'}
+                        </span>
+                    </div>
+
+                    {contribItems.length === 0 ? (
+                        <p className="text-sm text-ink/60">
+                            Belum ada siswa yang memenuhi syarat minimum karya di bulan ini.
+                        </p>
                     ) : (
-                        <ul className="space-y-3">
-                            {contributors.map((c, i) => (
-                                <li key={c.id}>
-                                    <div className="mb-1 flex justify-between gap-3 text-sm">
-                                        <span className="truncate font-semibold text-ink">{i + 1}. {c.name}</span>
-                                        <span className="shrink-0 text-ink/60">{c.count} karya</span>
+                        <ol className="space-y-2">
+                            {contribItems.map((c, i) => (
+                                <li key={c.id}
+                                    className="flex items-center gap-3 rounded-2xl bg-cream/70 px-4 py-2.5 text-sm">
+                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-ink"
+                                        style={{ background: rankColor(c.rank, i) }}>
+                                        {c.rank}
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate font-semibold text-ink">{c.name}</p>
+                                        <p className="text-xs text-ink/60">
+                                            {c.posts_count} karya &middot; {c.likes_count} suka
+                                        </p>
                                     </div>
-                                    <div className="h-2 rounded-full bg-peach/40">
-                                        <div className="h-2 rounded-full bg-brand"
-                                            style={{ width: `${(c.count / maxContrib) * 100}%` }} />
-                                    </div>
+                                    {c.announced && (
+                                        <span className="shrink-0 rounded-full bg-grape/10 px-2.5 py-0.5 text-xs font-semibold text-grape">
+                                            Diumumkan
+                                        </span>
+                                    )}
                                 </li>
                             ))}
-                        </ul>
+                        </ol>
                     )}
+
+                    <Link href="/admin/contributors"
+                        className="mt-4 inline-block text-sm font-semibold text-grape hover:underline">
+                        {contributors.announced ? 'Kelola pengumuman' : 'Pilih dan umumkan'}
+                    </Link>
                 </Card>
 
                 <Card className="lg:col-span-2">
