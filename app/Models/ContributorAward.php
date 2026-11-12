@@ -43,6 +43,7 @@ class ContributorAward extends Model
             ->filter(fn ($a) => $a->user)
             ->map(fn ($a) => [
                 'id'          => $a->user->id,
+                'rank'        => $a->rank,
                 'name'        => $a->user->name,
                 'avatar_url'  => $a->user->avatar_url,
                 'posts_count' => $a->posts_count,
