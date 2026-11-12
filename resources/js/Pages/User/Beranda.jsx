@@ -24,7 +24,7 @@ const PERIODS = [
     { value: 90, label: '3 bulan' },
 ];
 
-export default function Beranda({ posts, filters, isAdmin, categories = [], poll =  null, contributors = [] }) {
+export default function Beranda({ posts, filters, isAdmin, categories = [], poll =  null, contributors = null }) {
     const { auth } = usePage().props;
     const Layout = isAdmin ? AdminLayout : UserLayout;
     const catName = categories.find((c) => String(c.id) === String(filters.category))?.name;

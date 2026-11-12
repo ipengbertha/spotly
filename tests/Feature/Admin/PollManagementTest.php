@@ -249,7 +249,7 @@ class PollManagementTest extends TestCase
             ->get('/admin/polls')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('Admin/PollManagement')
+                ->component('Admin/Polls/Index')
                 ->has('polls', 1)
                 ->where('hasOpen', true)
                 ->where('polls.0.status', 'open')

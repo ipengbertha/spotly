@@ -9,8 +9,9 @@ use Illuminate\Support\Carbon;
 class ContributorAward extends Model
 {
     protected $fillable = [
-        'posts_count', 'likes_count', 'comments_count', 'announced_by',
-    ];
+    'period', 'user_id', 'rank',
+    'posts_count', 'likes_count', 'comments_count', 'announced_by',
+];
 
     public function user(): BelongsTo
     {

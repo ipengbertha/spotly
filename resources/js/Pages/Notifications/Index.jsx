@@ -14,6 +14,7 @@ const DOT = {
     report_submitted: 'bg-peach',
     report_dismissed: 'bg-grape',
     report_upheld:    'bg-grape',
+    contributor_announced: 'bg-peach',
 };
 
 export default function Index({ notifications, isAdmin }) {

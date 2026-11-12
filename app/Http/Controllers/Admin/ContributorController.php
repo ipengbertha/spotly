@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ContributorAward;
+use App\Notifications\ContributorAnnounced;
 use App\Services\ContributorRanking;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -87,6 +89,11 @@ class ContributorController extends Controller
             ]);
         }
 
+        // Siapa yang sudah terpilih sebelumnya, supaya notifikasi tidak terkirim dobel.
+        $previousIds = ContributorAward::where('period', $data['period'])
+            ->pluck('user_id')->map(fn ($id) => (int) $id)->all();
+        $selectedIds = array_map('intval', $data['user_ids']);
+
         DB::transaction(function () use ($data, $candidates, $request) {
             ContributorAward::where('period', $data['period'])->delete();
 
@@ -104,6 +111,17 @@ class ContributorController extends Controller
             }
         });
 
+        // Yang dicabut dari daftar: tarik notifikasinya.
+        $this->retractNotifications($data['period'], array_diff($previousIds, $selectedIds));
+
+        // Yang baru masuk daftar: kirim notifikasi. Yang sudah pernah dapat tidak dikirimi lagi.
+        $newIds = array_diff($selectedIds, $previousIds);
+        ContributorAward::with('user')
+            ->where('period', $data['period'])
+            ->whereIn('user_id', $newIds)
+            ->get()
+            ->each(fn ($award) => $award->user?->notify(new ContributorAnnounced($award)));
+
         // TODO (tahap 2): catat ke log aktivitas admin.
 
         return back()->with('success', 'Kontributor bulan '.ContributorAward::labelFor($data['period']).' diumumkan.');
@@ -111,10 +129,27 @@ class ContributorController extends Controller
 
     public function destroy(string $period)
     {
+        $userIds = ContributorAward::where('period', $period)->pluck('user_id')->all();
+
         ContributorAward::where('period', $period)->delete();
+        $this->retractNotifications($period, $userIds);
 
         // TODO (tahap 2): catat ke log aktivitas admin.
 
         return back()->with('success', 'Pengumuman dibatalkan.');
+    }
+
+    /** Hapus notifikasi Bintang Mading untuk bulan tertentu milik user yang diberikan. */
+    private function retractNotifications(string $period, array $userIds): void
+    {
+        if (empty($userIds)) {
+            return;
+        }
+
+        DatabaseNotification::where('type', ContributorAnnounced::class)
+            ->whereIn('notifiable_id', $userIds)
+            ->get()
+            ->filter(fn ($n) => ($n->data['period'] ?? null) === $period)
+            ->each->delete();
     }
 }

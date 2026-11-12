@@ -7,7 +7,7 @@ use App\Models\Category;
 use App\Models\Post;
 use App\Models\Setting;
 use App\Models\Poll;
-use App\Models\ContributorAwards;
+use App\Models\ContributorAward;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
