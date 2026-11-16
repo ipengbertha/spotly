@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ContributorAward;
 use App\Notifications\ContributorAnnounced;
 use App\Services\ContributorRanking;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -122,19 +123,42 @@ class ContributorController extends Controller
             ->get()
             ->each(fn ($award) => $award->user?->notify(new ContributorAnnounced($award)));
 
-        // TODO (tahap 2): catat ke log aktivitas admin.
+        // Catat ke log aktivitas. Kalau pilihannya tidak berubah, tidak dicatat.
+        if (! empty($previousIds) && empty(array_diff($previousIds, $selectedIds)) && empty($newIds)) {
+            // sama persis dengan sebelumnya
+        } else {
+            $names = ContributorAward::with('user')
+                ->where('period', $data['period'])
+                ->orderBy('rank')
+                ->get()
+                ->map(fn ($a) => $a->user?->name ?? 'Akun dihapus')
+                ->implode(', ');
+
+            ActivityLog::recordSubject(
+                empty($previousIds) ? 'contributor.announced' : 'contributor.updated',
+                ContributorAward::labelFor($data['period']),
+                $names,
+            );
+        }
 
         return back()->with('success', 'Kontributor bulan '.ContributorAward::labelFor($data['period']).' diumumkan.');
     }
 
     public function destroy(string $period)
     {
-        $userIds = ContributorAward::where('period', $period)->pluck('user_id')->all();
+        $awards = ContributorAward::with('user')->where('period', $period)->orderBy('rank')->get();
+        $userIds = $awards->pluck('user_id')->all();
 
         ContributorAward::where('period', $period)->delete();
         $this->retractNotifications($period, $userIds);
 
-        // TODO (tahap 2): catat ke log aktivitas admin.
+        if ($awards->isNotEmpty()) {
+            ActivityLog::recordSubject(
+                'contributor.cancelled',
+                ContributorAward::labelFor($period),
+                $awards->map(fn ($a) => $a->user?->name ?? 'Akun dihapus')->implode(', '),
+            );
+        }
 
         return back()->with('success', 'Pengumuman dibatalkan.');
     }

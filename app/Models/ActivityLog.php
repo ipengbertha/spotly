@@ -34,6 +34,9 @@ class ActivityLog extends Model
         'poll.extended'             => 'mengubah batas waktu polling',
         'poll.closed'               => 'menutup polling',
         'poll.deleted'              => 'menghapus polling',
+        'contributor.announced' => 'mengumumkan Bintang Mading',
+        'contributor.updated'   => 'mengubah pengumuman Bintang Mading',
+        'contributor.cancelled' => 'membatalkan pengumuman Bintang Mading',
     ];
 
     protected $fillable = ['admin_id', 'action', 'post_id', 'subject_title', 'detail'];
