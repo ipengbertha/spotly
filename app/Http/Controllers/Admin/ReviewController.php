@@ -133,4 +133,34 @@ class ReviewController extends Controller
 
         return redirect()->route('admin.reviews.index');
     }
+    
+        public function reject(Request $request, Post $post)
+    {
+        if ($post->status !== Post::SUBMITTED) {
+            return back()->withErrors(['post' => 'Postingan ini sudah tidak menunggu review.']);
+        }
+
+        $data = $request->validate([
+            'rejection_reason' => ['required', 'string', 'min:10', 'max:500'],
+        ], [
+            'rejection_reason.required' => 'Alasan penolakan wajib diisi.',
+            'rejection_reason.min'      => 'Alasan penolakan minimal 10 karakter.',
+            'rejection_reason.max'      => 'Alasan penolakan maksimal 500 karakter.',
+        ]);
+
+        $post->forceFill([
+            'status'           => Post::REJECTED,
+            'rejection_reason' => $data['rejection_reason'],
+            'published_at'     => null,
+            'expired_at'       => null,
+        ])->save();
+
+        ActivityLog::record('post.rejected', $post, $data['rejection_reason']);
+
+        if ($post->user?->wantsNotification('post_rejected')) {
+            $post->user->notify(new PostRejected($post));
+        }
+
+        return redirect()->route('admin.reviews.index');
+    }
 }

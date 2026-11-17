@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import Logo from '../Components/Logo';
 import useLiveSearch, { madingSearchParams } from '../hooks/useLiveSearch';
-import Tip from '../Components/RailTip';
+import PeriodFilter from '../Components/PeriodFilter';
 import useDrawer from '../hooks/useDrawer';
 
 const ICONS = {
@@ -235,12 +235,17 @@ export default function AdminLayout({ title, children }) {
                                     className="w-full rounded-full border border-ink/10 bg-cream/70 py-2 pl-4 pr-12 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20" />
                                 <button type="submit" aria-label="Cari"
                                     className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-brand text-white shadow-sm hover:opacity-90">
-                                    <Ico name="search" className="h-4 w-4" />
+                                                                        <Ico name="search" className="h-4 w-4" />
                                 </button>
                             </form>
                         )}
 
                         <div className="ml-auto flex items-center gap-3">
+                                {onMading && (
+                                <div className="hidden sm:block">
+                                    <PeriodFilter />
+                                </div>
+                            )}
                             <span className="hidden rounded-full bg-grape/10 px-4 py-2 text-xs font-semibold text-grape xl:block">
                                 {today}
                             </span>

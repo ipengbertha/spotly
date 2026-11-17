@@ -2,29 +2,20 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import UserLayout from '../../Layouts/UserLayout';
 import AdminLayout from '../../Layouts/AdminLayout';
 import PostCard from '../../Components/PostCard';
-import PollCard from '../../Components/PollCard'
+import PollCard from '../../Components/PollCard';
 import ContributorCard from '../../Components/ContributorCard';
+import CategoryBar from '../../Components/CategoryBar';
 
-function Chip({ href, active, children }) {
-    return (
-        <Link href={href}
-            className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-                active
-                    ? 'bg-ink text-white shadow-sm'
-                    : 'bg-white text-ink/70 ring-1 ring-ink/10 hover:bg-peach/40'}`}>
-            {children}
-        </Link>
-    );
-}
-
-// Pilihan filter tanggal (nilai = jumlah hari, harus sama dengan FeedController::PERIOD_OPTIONS)
+// Pilihan filter tanggal (nilai harus sama dengan FeedController::PERIOD_OPTIONS)
 const PERIODS = [
-    { value: 7,  label: '7 hari' },
-    { value: 30, label: '30 hari' },
-    { value: 90, label: '3 bulan' },
+    { value: '7',           label: '7 hari terakhir',  phrase: 'dalam 7 hari terakhir' },
+    { value: '30',          label: '30 hari terakhir', phrase: 'dalam 30 hari terakhir' },
+    { value: '90', label: '3 bulan terakhir', phrase: 'dalam 3 bulan terakhir' },
+    { value: 'month',       label: 'Bulan ini',        phrase: 'bulan ini' },
+    { value: 'school_year', label: 'Tahun ajaran ini', phrase: 'pada tahun ajaran ini' },
 ];
 
-export default function Beranda({ posts, filters, isAdmin, categories = [], poll =  null, contributors = null }) {
+export default function Beranda({ posts, filters, isAdmin, categories = [], poll = null, contributors = null }) {
     const { auth } = usePage().props;
     const Layout = isAdmin ? AdminLayout : UserLayout;
     const catName = categories.find((c) => String(c.id) === String(filters.category))?.name;
@@ -44,7 +35,7 @@ export default function Beranda({ posts, filters, isAdmin, categories = [], poll
         return qs ? `/user/beranda?${qs}` : '/user/beranda';
     };
 
-    const periodLabel = PERIODS.find((x) => x.value === Number(filters.period))?.label;
+    const activePeriod = PERIODS.find((x) => x.value === String(filters.period));
 
     let title = 'Informasi Terbaru';
     let subtitle = 'Temukan informasi terbaru dari sekolah.';
@@ -58,10 +49,15 @@ export default function Beranda({ posts, filters, isAdmin, categories = [], poll
         title = catName;
         subtitle = `Semua postingan dalam kategori ${catName}.`;
     }
-    if (periodLabel) subtitle += ` Hanya yang tayang dalam ${periodLabel} terakhir.`;
+    if (activePeriod) subtitle += ` Hanya yang tayang ${activePeriod.phrase}.`;
 
     const isFiltering = Boolean(filters.q || filters.category || filters.spotlight || filters.period);
-    const noCategory = !filters.category && !filters.spotlight;
+
+    const emptyMessage = activePeriod
+        ? `Belum ada postingan yang tayang ${activePeriod.phrase}.`
+        : isFiltering
+            ? 'Tidak ada postingan yang cocok dengan pilihanmu.'
+            : 'Belum ada postingan yang tayang. Jadilah yang pertama membagikan sesuatu.';
 
     return (
         <Layout title="Mading">
@@ -76,47 +72,26 @@ export default function Beranda({ posts, filters, isAdmin, categories = [], poll
                     <h1 className="text-3xl text-ink">{title}</h1>
                     <p className="mt-1 text-sm text-ink/60">{subtitle}</p>
                 </div>
-                {isFiltering && (
-                    <Link href="/user/beranda"
-                        className="rounded-lg border border-ink/20 px-3 py-1.5 text-sm font-semibold text-ink hover:bg-ink/5">
-                        Hapus filter
-                    </Link>
-                )}
+                <div className="flex items-center gap-2">
+                    {isFiltering && (
+                        <Link href="/user/beranda"
+                            className="rounded-lg border border-ink/20 px-3 py-1.5 text-sm font-semibold text-ink hover:bg-ink/5">
+                            Hapus filter
+                        </Link>
+                    )}
+                </div>
             </div>
 
-        {!isFiltering && poll && <PollCard poll={poll} />}
-        {!isFiltering && contributors && <ContributorCard data={contributors} />}
-            {/* Filter kategori */}
-            <div className="mb-3 flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
-                <Chip href={buildHref({ category: null, spotlight: null })} active={noCategory}>Semua</Chip>
-                {categories.map((c) => (
-                    <Chip key={c.id} href={buildHref({ category: c.id, spotlight: null })}
-                        active={String(c.id) === String(filters.category)}>
-                        {c.name}
-                    </Chip>
-                ))}
-            </div>
+            {!isFiltering && poll && <PollCard poll={poll} />}
+            {!isFiltering && contributors && <ContributorCard data={contributors} />}
 
-            {/* Filter tanggal */}
-            <div className="mb-8 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
-                <span className="shrink-0 text-sm font-semibold text-ink/60">Tayang:</span>
-                <Chip href={buildHref({ period: null })} active={!filters.period}>Semua</Chip>
-                {PERIODS.map((x) => (
-                    <Chip key={x.value} href={buildHref({ period: x.value })}
-                        active={Number(filters.period) === x.value}>
-                        {x.label}
-                    </Chip>
-                ))}
-            </div>
+                        {/* Filter kategori */}
+                <CategoryBar categories={categories} filters={filters} buildHref={buildHref} />
 
             {posts.data.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-peach bg-white/60 px-6 py-16 text-center">
                     <h2 className="text-xl text-ink">Belum ada postingan</h2>
-                    <p className="mx-auto mt-2 max-w-sm text-sm text-ink/60">
-                        {isFiltering
-                            ? 'Tidak ada postingan yang cocok dengan pilihanmu.'
-                            : 'Belum ada postingan yang tayang. Jadilah yang pertama membagikan sesuatu.'}
-                    </p>
+                    <p className="mx-auto mt-2 max-w-sm text-sm text-ink/60">{emptyMessage}</p>
                 </div>
             ) : (
                 <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">

@@ -4,6 +4,7 @@ import Logo from '../Components/Logo';
 import useLiveSearch, { madingSearchParams } from '../hooks/useLiveSearch';
 import useDrawer from '../hooks/useDrawer';
 import Tip from '../Components/RailTip';
+import PeriodFilter from '../Components/PeriodFilter';
 
 const ICONS = {
     home:   'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',
@@ -73,7 +74,7 @@ function NavItem({ icon, label, href, active, soon, badge }) {
     );
 }
 
-export default function UserLayout({ children }) {
+export default function UserLayout({ title, children }) {
     const { url, props } = usePage();
     const user = props.auth?.user;
 
@@ -215,6 +216,10 @@ export default function UserLayout({ children }) {
                             <Ico name="menu" />
                         </button>
 
+                        {title && !isForm && (
+                            <h1 className="hidden shrink-0 truncate pl-2 text-xl text-ink md:block">{title}</h1>
+                        )}
+
                         {!isForm && (
                             <form onSubmit={search} className="relative min-w-0 flex-1 sm:max-w-md">
                                 <input value={q} onChange={(e) => setQ(e.target.value)}
@@ -228,6 +233,7 @@ export default function UserLayout({ children }) {
                         )}
 
                         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+                            {onBeranda && !isForm && <PeriodFilter />}
                             <span className="whitespace-nowrap rounded-full bg-grape/10 px-2.5 py-1.5 text-[11px] font-semibold text-grape sm:px-4 sm:py-2 sm:text-xs">
                                 <span className="xl:hidden">{shortDate}</span>
                                 <span className="hidden xl:inline">{today}</span>
