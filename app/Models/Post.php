@@ -219,7 +219,7 @@ class Post extends Model
 
     // Dipanggil admin saat approve. Tanpa $publishAt, published_at otomatis sekarang
     // (langsung tayang). Dengan $publishAt di masa depan, postingan menjadi terjadwal.
-    public function markPublished(Carbon $expiredAt, ?Carbon $publishAt = null): void
+    public function markPublished(?Carbon $expiredAt, ?Carbon $publishAt = null): void
     {
         $this->forceFill([
             'status'           => self::PUBLISHED,
@@ -265,7 +265,7 @@ class Post extends Model
             && $this->published_at->gt(now());
     }
 
-    public function setExpiry(Carbon $expiredAt): void
+    public function setExpiry(?Carbon $expiredAt): void
     {
         $this->forceFill(['expired_at' => $expiredAt])->save();
     }

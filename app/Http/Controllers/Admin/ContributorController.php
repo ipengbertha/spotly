@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\ContributorAward;
 use App\Notifications\ContributorAnnounced;
 use App\Services\ContributorRanking;
-use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -123,10 +123,12 @@ class ContributorController extends Controller
             ->get()
             ->each(fn ($award) => $award->user?->notify(new ContributorAnnounced($award)));
 
-        // Catat ke log aktivitas. Kalau pilihannya tidak berubah, tidak dicatat.
-        if (! empty($previousIds) && empty(array_diff($previousIds, $selectedIds)) && empty($newIds)) {
-            // sama persis dengan sebelumnya
-        } else {
+        // Catat ke log aktivitas hanya kalau pilihannya benar-benar berubah.
+        $changed = empty($previousIds)
+            || ! empty($newIds)
+            || ! empty(array_diff($previousIds, $selectedIds));
+
+        if ($changed) {
             $names = ContributorAward::with('user')
                 ->where('period', $data['period'])
                 ->orderBy('rank')
@@ -146,7 +148,7 @@ class ContributorController extends Controller
 
     public function destroy(string $period)
     {
-        $awards = ContributorAward::with('user')->where('period', $period)->orderBy('rank')->get();
+        $awards  = ContributorAward::with('user')->where('period', $period)->orderBy('rank')->get();
         $userIds = $awards->pluck('user_id')->all();
 
         ContributorAward::where('period', $period)->delete();

@@ -14,7 +14,7 @@ use Inertia\Inertia;
 
 class CategoryController extends Controller
 {
-        public function index(Request $request)
+    public function index(Request $request)
     {
         $request->validate(['q' => ['nullable', 'string', 'max:100']]);
         $q = $request->query('q');
@@ -33,6 +33,8 @@ class CategoryController extends Controller
                     'posts_count'   => $c->posts_count + $c->extra_posts_count,
                     'primary_count' => $c->posts_count,
                     'is_fallback'   => $c->isFallback(),
+                    'expiry_mode'   => $c->mode(),
+                    'expiry_label'  => Category::EXPIRY_MODES[$c->mode()],
                 ]),
             // Semua kategori (tanpa halaman) untuk pilihan tujuan pemindahan
             'allCategories' => Category::orderBy('name')
@@ -42,6 +44,9 @@ class CategoryController extends Controller
                     'name'        => $c->name,
                     'is_fallback' => $c->isFallback(),
                 ]),
+            'expiryModes' => collect(Category::EXPIRY_MODES)
+                ->map(fn ($label, $value) => ['value' => $value, 'label' => $label])
+                ->values(),
             'filters' => ['q' => $q],
         ]);
     }
@@ -49,7 +54,8 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:50', 'unique:categories,name'],
+            'name'        => ['required', 'string', 'max:50', 'unique:categories,name'],
+            'expiry_mode' => ['nullable', Rule::in(array_keys(Category::EXPIRY_MODES))],
         ], $this->messages());
 
         $slug = $this->slugFor($data['name']);
@@ -57,7 +63,11 @@ class CategoryController extends Controller
             return back()->withErrors(['name' => 'Nama kategori tidak valid atau terlalu mirip dengan kategori lain.']);
         }
 
-        $category = Category::create(['name' => $data['name'], 'slug' => $slug]);
+        $category = Category::create([
+            'name'        => $data['name'],
+            'slug'        => $slug,
+            'expiry_mode' => $data['expiry_mode'] ?? Category::EXPIRY_DATED,
+        ]);
 
         ActivityLog::recordSubject('category.created', $category->name);
 
@@ -71,7 +81,8 @@ class CategoryController extends Controller
         }
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:50', Rule::unique('categories', 'name')->ignore($category->id)],
+            'name'        => ['required', 'string', 'max:50', Rule::unique('categories', 'name')->ignore($category->id)],
+            'expiry_mode' => ['nullable', Rule::in(array_keys(Category::EXPIRY_MODES))],
         ], $this->messages());
 
         $slug = $this->slugFor($data['name'], $category->id);
@@ -79,12 +90,22 @@ class CategoryController extends Controller
             return back()->withErrors(['name' => 'Nama kategori tidak valid atau terlalu mirip dengan kategori lain.']);
         }
 
-        $old = $category->name;
+        $old     = $category->name;
+        $oldMode = $category->mode();
+        $newMode = $data['expiry_mode'] ?? $oldMode;
 
-        $category->update(['name' => $data['name'], 'slug' => $slug]);
+        $category->update(['name' => $data['name'], 'slug' => $slug, 'expiry_mode' => $newMode]);
 
         if ($old !== $data['name']) {
             ActivityLog::recordSubject('category.renamed', $data['name'], 'Sebelumnya "' . $old . '"');
+        }
+
+        if ($oldMode !== $newMode) {
+            ActivityLog::recordSubject(
+                'category.expiry_changed',
+                $data['name'],
+                'Dari "' . Category::EXPIRY_MODES[$oldMode] . '" menjadi "' . Category::EXPIRY_MODES[$newMode] . '"',
+            );
         }
 
         return redirect()->route('admin.categories.index');

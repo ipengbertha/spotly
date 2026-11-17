@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Post;
+use App\Models\Category;
 use App\Notifications\PostScheduleCancelled;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -32,6 +33,7 @@ class PostController extends Controller
                     'title'           => $p->title,
                     'author'          => $p->user?->name,
                     'category'        => $p->category?->name,
+                    'expiry_mode'     => $p->category?->mode() ?? Category::EXPIRY_DATED,
                     'is_pinned'       => $p->is_pinned,
                     'published_label' => $p->published_at->translatedFormat('d M Y'),
                     'expired_label'   => $p->expired_at?->translatedFormat('d M Y') ?? 'Tanpa batas',
@@ -64,17 +66,30 @@ class PostController extends Controller
             return back()->withErrors(['post' => 'Hanya postingan yang sedang tayang yang bisa diubah masa tayangnya.']);
         }
 
-        $data = $request->validate([
-            'expired_at' => ['required', 'date', 'after_or_equal:today'],
-        ], [
+        // Kategori "tanpa batas" dan "tahun ajaran" diatur otomatis, tidak bisa diubah per postingan
+        if ($post->category->mode() !== Category::EXPIRY_DATED) {
+            return back()->withErrors([
+                'post' => 'Masa tayang kategori "' . $post->category->name . '" diatur otomatis, jadi tidak bisa diubah per postingan.',
+            ]);
+        }
+
+        $noExpiry = $request->boolean('no_expiry');
+
+        $rules = [];
+        if (! $noExpiry) {
+            $rules['expired_at'] = ['required', 'date', 'after_or_equal:today'];
+        }
+
+        $data = $request->validate($rules, [
             'expired_at.required'       => 'Tanggal akhir tayang wajib diisi.',
             'expired_at.date'           => 'Tanggal akhir tayang tidak valid.',
             'expired_at.after_or_equal' => 'Tanggal akhir tayang tidak boleh sebelum hari ini.',
         ]);
 
-        $post->setExpiry(Carbon::parse($data['expired_at'])->endOfDay());
+        $post->setExpiry($noExpiry ? null : Carbon::parse($data['expired_at'])->endOfDay());
 
-        ActivityLog::record('post.expiry', $post, 'Sampai ' . $post->expired_at->translatedFormat('d M Y'));
+        ActivityLog::record('post.expiry', $post,
+            $post->expired_at ? 'Sampai ' . $post->expired_at->translatedFormat('d M Y') : 'Tanpa batas');
 
         return back();
     }

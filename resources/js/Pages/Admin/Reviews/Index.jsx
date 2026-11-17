@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import StatusBadge from '../../../Components/StatusBadge';
+import ExpiryField from '../../../Components/ExpiryField';
 
 const pad = (n) => String(n).padStart(2, '0');
 const toInputDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -38,7 +39,7 @@ export default function Index({ posts }) {
     const keyword = new URL(url, 'http://localhost').searchParams.get('q');
 
     const [dialog, setDialog] = useState(null); // { type: 'view' | 'approve' | 'revision' | 'reject', post }
-    const approve = useForm({ publish_at: toInputDate(new Date()), expired_at: defaultExpiry() });
+    const approve = useForm({ publish_at: toInputDate(new Date()), expired_at: defaultExpiry(), no_expiry: false });
     const revision = useForm({ revision_note: '' });
     const reject = useForm({ rejection_reason: '' });
 
@@ -230,16 +231,16 @@ export default function Index({ posts }) {
                             </p>
                         )}
 
-                        <label className="mb-1 mt-3 block text-sm font-semibold text-ink" htmlFor="expired_at">
-                            Tayang sampai
-                        </label>
-                        <input id="expired_at" type="date" min={approve.data.publish_at || today}
-                            value={approve.data.expired_at}
-                            onChange={(e) => approve.setData('expired_at', e.target.value)}
-                            className={DATE_INPUT} />
-                        {approve.errors.expired_at && (
-                            <p className="mt-1 text-sm text-brand">{approve.errors.expired_at}</p>
-                        )}
+                        <ExpiryField
+                        mode={dialog.post.category?.expiry_mode}
+                        categoryName={dialog.post.category?.name}
+                        value={approve.data.expired_at}
+                        onChange={(v) => approve.setData('expired_at', v)}
+                        noExpiry={approve.data.no_expiry}
+                        onNoExpiryChange={(v) => approve.setData('no_expiry', v)}
+                        min={approve.data.publish_at || today}
+                        startDate={approve.data.publish_at}
+                        error={approve.errors.expired_at} />
 
                         <div className="mt-6 flex justify-end gap-2">
                             <button type="button" onClick={close}

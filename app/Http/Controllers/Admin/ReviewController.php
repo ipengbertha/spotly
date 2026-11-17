@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Post;
+use App\Models\Category;
 use App\Notifications\PostApproved;
 use App\Notifications\PostRejected;
 use App\Notifications\PostRevisionRequested;
@@ -20,7 +21,7 @@ class ReviewController extends Controller
         $q = $request->query('q');
 
         return Inertia::render('Admin/Reviews/Index', [
-            'posts' => Post::with(['user:id,name', 'category:id,name'])
+            'posts' => Post::with(['user:id,name', 'category:id,name,expiry_mode'])
                 ->where('status', Post::SUBMITTED)
                 ->when($q, fn ($query) => $query->where(function ($w) use ($q) {
                     $w->where('title', 'like', "%{$q}%")
@@ -43,10 +44,19 @@ class ReviewController extends Controller
             return back()->withErrors(['post' => 'Postingan ini sudah tidak menunggu review.']);
         }
 
-        $data = $request->validate([
+        $category = $post->category;
+        $dated    = $category->mode() === Category::EXPIRY_DATED;
+        $noExpiry = $dated && $request->boolean('no_expiry');
+
+        $rules = [
             // Tanggal mulai tayang boleh kosong: artinya tayang sekarang
             'publish_at' => ['nullable', 'date', 'after_or_equal:today'],
-            'expired_at' => [
+        ];
+
+        // Tanggal akhir hanya diminta untuk kategori "ada batas tanggal",
+        // dan hanya kalau admin tidak memilih "tanpa batas".
+        if ($dated && ! $noExpiry) {
+            $rules['expired_at'] = [
                 'required', 'date', 'after_or_equal:today',
                 // Akhir tayang tidak boleh sebelum mulai tayang
                 function ($attribute, $value, $fail) use ($request) {
@@ -57,8 +67,10 @@ class ReviewController extends Controller
                         $fail('Tanggal akhir tayang tidak boleh sebelum tanggal mulai tayang.');
                     }
                 },
-            ],
-        ], [
+            ];
+        }
+
+        $data = $request->validate($rules, [
             'publish_at.date'           => 'Tanggal mulai tayang tidak valid.',
             'publish_at.after_or_equal' => 'Tanggal mulai tayang tidak boleh sebelum hari ini.',
             'expired_at.required'       => 'Tanggal akhir tayang wajib diisi.',
@@ -73,43 +85,24 @@ class ReviewController extends Controller
             $publishAt = $start->isFuture() ? $start : null;
         }
 
-        $post->markPublished(Carbon::parse($data['expired_at'])->endOfDay(), $publishAt);
+        // Tanggal akhir ditentukan aturan kategori (tanggal pilihan admin, tanpa batas, atau akhir tahun ajaran)
+        $requested = ($dated && ! $noExpiry) ? Carbon::parse($data['expired_at'])->endOfDay() : null;
 
-        $until = $post->expired_at->translatedFormat('d M Y');
+        $post->markPublished($category->resolveExpiry($requested, $publishAt ?? now()), $publishAt);
+
+        $span = $post->expired_at
+            ? 'sampai ' . $post->expired_at->translatedFormat('d M Y')
+            : 'tanpa batas';
+
         if ($publishAt) {
             ActivityLog::record('post.scheduled', $post,
-                'Tayang ' . $post->published_at->translatedFormat('d M Y') . ' sampai ' . $until);
+                'Tayang ' . $post->published_at->translatedFormat('d M Y') . ' ' . $span);
         } else {
-            ActivityLog::record('post.approved', $post, 'Tayang sampai ' . $until);
+            ActivityLog::record('post.approved', $post, 'Tayang ' . $span);
         }
 
         if ($post->user?->wantsNotification('post_approved')) {
             $post->user->notify(new PostApproved($post));
-        }
-
-        return redirect()->route('admin.reviews.index');
-    }
-
-    public function reject(Request $request, Post $post)
-    {
-        if ($post->status !== Post::SUBMITTED) {
-            return back()->withErrors(['post' => 'Postingan ini sudah tidak menunggu review.']);
-        }
-
-        $data = $request->validate([
-            'rejection_reason' => ['required', 'string', 'min:10', 'max:500'],
-        ], [
-            'rejection_reason.required' => 'Alasan penolakan wajib diisi.',
-            'rejection_reason.min'      => 'Alasan penolakan minimal 10 karakter.',
-            'rejection_reason.max'      => 'Alasan penolakan maksimal 500 karakter.',
-        ]);
-
-        $post->markRejected($data['rejection_reason']);
-
-        ActivityLog::record('post.rejected', $post, $data['rejection_reason']);
-
-        if ($post->user?->wantsNotification('post_rejected')) {
-            $post->user->notify(new PostRejected($post));
         }
 
         return redirect()->route('admin.reviews.index');

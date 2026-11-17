@@ -18,10 +18,10 @@ function Modal({ title, onClose, children }) {
     );
 }
 
-export default function Index({ categories, allCategories, filters }) {
+export default function Index({ categories, allCategories, expiryModes, filters }) {
     const { errors } = usePage().props;
     const [dialog, setDialog] = useState(null); // { type: 'create' | 'edit' | 'delete', category? }
-    const form = useForm({ name: '' });
+    const form = useForm({ name: '', expiry_mode: 'dated' });
     const deleteForm = useForm({ move_to: '' });
 
     const openCreate = () => {
@@ -31,7 +31,7 @@ export default function Index({ categories, allCategories, filters }) {
     };
     const openEdit = (c) => {
         form.clearErrors();
-        form.setData('name', c.name);
+        form.setData({ name: c.name, expiry_mode: c.expiry_mode });
         setDialog({ type: 'edit', category: c });
     };
     const close = () => setDialog(null);
@@ -109,6 +109,7 @@ export default function Index({ categories, allCategories, filters }) {
                         <tr>
                             <th className="px-5 py-4 font-medium">Nama</th>
                             <th className="px-5 py-4 font-medium">Slug</th>
+                            <th className="px-5 py-4 font-medium">Batas tayang</th>
                             <th className="px-5 py-4 font-medium">Postingan</th>
                             <th className="px-5 py-4 font-medium">Aksi</th>
                         </tr>
@@ -116,7 +117,7 @@ export default function Index({ categories, allCategories, filters }) {
                     <tbody className="divide-y divide-ink/5">
                         {categories.data.length === 0 && (
                             <tr>
-                                <td colSpan={4} className="p-8 text-center text-ink/60">
+                                <td colSpan={5} className="p-8 text-center text-ink/60">
                                     {filters?.q ? 'Tidak ada kategori yang cocok.' : 'Belum ada kategori.'}
                                 </td>
                             </tr>
@@ -132,6 +133,7 @@ export default function Index({ categories, allCategories, filters }) {
                                     )}
                                 </td>
                                 <td className="px-5 py-3 text-ink/60">{c.slug}</td>
+                                <td className="px-5 py-3 text-ink/70">{c.expiry_label}</td>
                                 <td className="px-5 py-3 text-ink/70">{c.posts_count}</td>
                                 <td className="whitespace-nowrap px-5 py-3">
                                     <div className="flex flex-nowrap gap-2">
@@ -185,6 +187,18 @@ export default function Index({ categories, allCategories, filters }) {
                             onChange={(e) => form.setData('name', e.target.value)}
                             className="w-full rounded-xl border border-ink/15 px-3 py-2 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20" />
                         {form.errors.name && <p className="mt-1 text-sm text-brand">{form.errors.name}</p>}
+                        <label className="mb-1 mt-4 block text-sm font-semibold text-ink" htmlFor="cat-expiry">
+                            Batas tayang
+                        </label>
+                        <select id="cat-expiry" value={form.data.expiry_mode}
+                            onChange={(e) => form.setData('expiry_mode', e.target.value)}
+                            className="w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20">
+                            {expiryModes.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                        </select>
+                        {form.errors.expiry_mode && <p className="mt-1 text-sm text-brand">{form.errors.expiry_mode}</p>}
+                        <p className="mt-1 text-xs text-ink/60">
+                            Berlaku untuk postingan yang disetujui sesudahnya. Postingan yang sudah tayang tidak berubah.
+                        </p>
                         <div className="mt-6 flex justify-end gap-2">
                             <button type="button" onClick={close}
                                 className="rounded-full border border-ink/20 px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5">

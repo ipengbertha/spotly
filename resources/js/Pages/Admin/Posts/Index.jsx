@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 import ScheduledPosts from '../../../Components/ScheduledPosts';
+import ExpiryField from '../../../Components/ExpiryField';
 
 const pad = (n) => String(n).padStart(2, '0');
 const toInputDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -25,11 +26,14 @@ function Modal({ title, onClose, children }) {
 export default function Index({ posts, scheduled, pinnedCount, maxPinned, filters }) {
     const { errors } = usePage().props;
     const [editing, setEditing] = useState(null);
-    const form = useForm({ expired_at: '' });
+    const form = useForm({ expired_at: '', no_expiry: false });
 
     const openEdit = (p) => {
         form.clearErrors();
-        form.setData('expired_at', p.expired_input);
+        form.setData({
+            expired_at: p.expired_input || toInputDate(new Date()),
+            no_expiry: p.expired_input === '',
+        });
         setEditing(p);
     };
     const closeEdit = () => setEditing(null);
@@ -123,8 +127,9 @@ export default function Index({ posts, scheduled, pinnedCount, maxPinned, filter
                                 <td className="whitespace-nowrap px-5 py-3 text-ink/70">{p.expired_label}</td>
                                 <td className="whitespace-nowrap px-5 py-3">
                                     <div className="flex flex-nowrap gap-2">
-                                        <button onClick={() => openEdit(p)}
-                                            className="rounded-full bg-grape/10 px-3 py-1 text-xs font-semibold text-grape hover:bg-grape/20">
+                                        <button onClick={() => openEdit(p)} disabled={p.expiry_mode !== 'dated'}
+                                            title={p.expiry_mode !== 'dated' ? 'Masa tayang kategori ini diatur otomatis' : ''}
+                                            className="rounded-full bg-grape/10 px-3 py-1 text-xs font-semibold text-grape hover:bg-grape/20 disabled:cursor-not-allowed disabled:opacity-40">
                                             Masa tayang
                                         </button>
                                         {p.is_pinned ? (
@@ -182,16 +187,16 @@ export default function Index({ posts, scheduled, pinnedCount, maxPinned, filter
                         <p className="mb-4 text-sm text-ink/60">
                             Atur sampai kapan &quot;{editing.title}&quot; tampil di mading.
                         </p>
-                        <label className="mb-1 block text-sm font-semibold text-ink" htmlFor="expired_at">
-                            Tayang sampai
-                        </label>
-                        <input id="expired_at" type="date" min={toInputDate(new Date())}
+
+                        <ExpiryField
+                            mode="dated"
                             value={form.data.expired_at}
-                            onChange={(e) => form.setData('expired_at', e.target.value)}
-                            className="w-full rounded-xl border border-ink/15 px-3 py-2 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20" />
-                        {form.errors.expired_at && (
-                            <p className="mt-1 text-sm text-brand">{form.errors.expired_at}</p>
-                        )}
+                            onChange={(v) => form.setData('expired_at', v)}
+                            noExpiry={form.data.no_expiry}
+                            onNoExpiryChange={(v) => form.setData('no_expiry', v)}
+                            min={toInputDate(new Date())}
+                            error={form.errors.expired_at} />
+
                         <div className="mt-6 flex justify-end gap-2">
                             <button type="button" onClick={closeEdit}
                                 className="rounded-full border border-ink/20 px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5">

@@ -160,11 +160,14 @@ function Body({ period, periodLabel, months, ranking, candidateIds, selected, an
 }
 
 export default function Contributors(props) {
+    // key: form dibuat ulang saat bulan diganti, atau saat status pengumuman / pilihan
+    // dari server berubah (misalnya setelah pembatalan), supaya centang ikut data terbaru.
+    const bodyKey = `${props.period}:${props.announced ? 1 : 0}:${props.selected.join(',')}`;
+
     return (
         <AdminLayout title="Kontributor">
             <Head title="Kontributor" />
-            {/* key: pilihan dicentang direset saat bulan diganti */}
-            <Body key={props.period} {...props} />
+            <Body key={bodyKey} {...props} />
         </AdminLayout>
     );
 }

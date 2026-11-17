@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
+import ExpiryField from '../../../Components/ExpiryField';
 
 const pad = (n) => String(n).padStart(2, '0');
 const toInputDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -27,11 +28,11 @@ function Modal({ title, onClose, children }) {
 export default function Index({ posts, filters }) {
     const { errors } = usePage().props;
     const [target, setTarget] = useState(null);
-    const form = useForm({ expired_at: defaultExpiry() });
+    const form = useForm({ expired_at: defaultExpiry(), no_expiry: false });
 
     const openRepublish = (p) => {
         form.clearErrors();
-        form.setData('expired_at', defaultExpiry());
+        form.setData({ expired_at: defaultExpiry(), no_expiry: false });
         setTarget(p);
     };
     const close = () => setTarget(null);
@@ -147,16 +148,16 @@ export default function Index({ posts, filters }) {
                         <p className="mb-4 text-sm text-ink/60">
                             &quot;{target.title}&quot; akan tayang lagi mulai sekarang. Tentukan sampai kapan.
                         </p>
-                        <label className="mb-1 block text-sm font-semibold text-ink" htmlFor="republish-date">
-                            Tayang sampai
-                        </label>
-                        <input id="republish-date" type="date" min={toInputDate(new Date())}
-                            value={form.data.expired_at}
-                            onChange={(e) => form.setData('expired_at', e.target.value)}
-                            className="w-full rounded-xl border border-ink/15 px-3 py-2 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20" />
-                        {form.errors.expired_at && (
-                            <p className="mt-1 text-sm text-brand">{form.errors.expired_at}</p>
-                        )}
+                        <ExpiryField
+                        id="republish-date"
+                        mode={target.expiry_mode}
+                        categoryName={target.category}
+                        value={form.data.expired_at}
+                        onChange={(v) => form.setData('expired_at', v)}
+                        noExpiry={form.data.no_expiry}
+                        onNoExpiryChange={(v) => form.setData('no_expiry', v)}
+                        min={toInputDate(new Date())}
+                        error={form.errors.expired_at} />
                         <div className="mt-6 flex justify-end gap-2">
                             <button type="button" onClick={close}
                                 className="rounded-full border border-ink/20 px-4 py-2 text-sm font-semibold text-ink hover:bg-ink/5">

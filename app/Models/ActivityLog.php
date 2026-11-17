@@ -30,6 +30,7 @@ class ActivityLog extends Model
         'category.created'          => 'menambah kategori',
         'category.renamed'          => 'mengubah nama kategori',
         'category.deleted'          => 'menghapus kategori',
+        'category.expiry_changed'   => 'mengubah aturan batas tayang kategori',
         'poll.created'              => 'membuat polling',
         'poll.extended'             => 'mengubah batas waktu polling',
         'poll.closed'               => 'menutup polling',
