@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import Logo from '../Components/Logo';
 import useLiveSearch, { madingSearchParams } from '../hooks/useLiveSearch';
-import PeriodFilter from '../Components/PeriodFilter';
+import Tip from '../Components/RailTip';
 import useDrawer from '../hooks/useDrawer';
+import PeriodFilter from '../Components/PeriodFilter';
 
 const ICONS = {
     dash:    'M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z',
@@ -220,10 +221,10 @@ export default function AdminLayout({ title, children }) {
                             <Ico name="menu" />
                         </button>
 
-                        <h1 className="truncate pl-2 text-xl text-ink">{title}</h1>
+                        <h1 className="shrink-0 whitespace-nowrap pl-2 text-xl text-ink">{title}</h1>
 
                             {(onMading || onUsers || onReviews || onArchive || onCategories || onPosts || onComments) && (
-                                                        <form onSubmit={search} className="relative ml-2 hidden w-full max-w-md sm:block">
+                                <form onSubmit={search} className="relative ml-2 hidden min-w-0 flex-1 max-w-md sm:block">
                                 <input value={q} onChange={(e) => setQ(e.target.value)}
                                     placeholder={onMading ? 'Cari informasi...'
                                         : onUsers ? 'Cari pengguna...'
@@ -246,12 +247,12 @@ export default function AdminLayout({ title, children }) {
                                     <PeriodFilter />
                                 </div>
                             )}
-                            <span className="hidden rounded-full bg-grape/10 px-4 py-2 text-xs font-semibold text-grape xl:block">
+                            <span className="hidden whitespace-nowrap rounded-full bg-grape/10 px-4 py-2 text-xs font-semibold text-grape min-[1500px]:block">
                                 {today}
                             </span>
                             {!onReviews && (
                                 <Link href="/admin/reviews"
-                                    className="hidden items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90 sm:flex">
+                                    className="hidden shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90 sm:flex">
                                     <Ico name="clock" className="h-4 w-4" /> Antrean Review
                                 </Link>
                             )}

@@ -59,8 +59,13 @@ class UserController extends Controller
         $user->setActive($active);
 
         if ($changed) {
-            ActivityLog::recordSubject($active ? 'user.activated' : 'user.deactivated', $user->name);
-        }
+        ActivityLog::recordSubject(
+            $active ? 'user.activated' : 'user.deactivated',
+            $user->name,
+            $user->email,
+            $user,
+        );
+    }
 
         return back();
     }

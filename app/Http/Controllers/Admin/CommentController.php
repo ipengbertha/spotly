@@ -88,7 +88,7 @@ class CommentController extends Controller
         }
 
         // Dicatat sebelum dihapus supaya isinya masih terbaca
-        ActivityLog::recordSubject('comment.deleted', $comment->user?->name ?? 'pengguna terhapus', $detail);
+        ActivityLog::recordSubject('comment.deleted', $comment->user?->name ?? 'pengguna terhapus', $detail, $comment->user);
 
         $comment->delete();
 
@@ -109,7 +109,8 @@ class CommentController extends Controller
             ActivityLog::recordSubject(
                 'comment.reports_dismissed',
                 $comment->user?->name ?? 'pengguna terhapus',
-                $count . ' laporan. Komentar: ' . Str::limit($comment->content, 100)
+                $count . ' laporan. Komentar: ' . Str::limit($comment->content, 100),
+                $comment->user,
             );
         }
 

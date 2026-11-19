@@ -40,7 +40,10 @@ class ActivityLog extends Model
         'contributor.cancelled' => 'membatalkan pengumuman Bintang Mading',
     ];
 
-    protected $fillable = ['admin_id', 'action', 'post_id', 'subject_title', 'detail'];
+    protected $fillable = [
+        'admin_id', 'action', 'post_id', 'subject_title',
+        'target_user_id', 'target_user_name', 'detail',
+    ];
 
     public function admin()
     {
@@ -48,37 +51,44 @@ class ActivityLog extends Model
     }
 
     /**
-     * Catat aksi admin yang sedang login. Kegagalan mencatat tidak boleh
-     * menggagalkan aksinya sendiri, jadi hanya dilaporkan ke log error.
+     * Catat aksi admin yang sedang login. Penulis postingan otomatis dicatat
+     * sebagai user yang terkena aksi, kecuali $target diisi sendiri.
+     * Kegagalan mencatat tidak boleh menggagalkan aksinya sendiri.
      */
-    public static function record(string $action, ?Post $post = null, ?string $detail = null): void
+    public static function record(string $action, ?Post $post = null, ?string $detail = null, ?User $target = null): void
     {
         try {
+            $target ??= $post?->user;
+
             static::create([
-                'admin_id'      => auth()->id(),
-                'action'        => $action,
-                'post_id'       => $post?->id,
-                'subject_title' => $post?->title,
-                'detail'        => $detail !== null ? Str::limit($detail, 500, '') : null,
+                'admin_id'         => auth()->id(),
+                'action'           => $action,
+                'post_id'          => $post?->id,
+                'subject_title'    => $post?->title,
+                'target_user_id'   => $target?->id,
+                'target_user_name' => $target?->name,
+                'detail'           => $detail !== null ? Str::limit($detail, 500, '') : null,
             ]);
         } catch (Throwable $e) {
             report($e);
         }
-    }
+}
 
-        /**
-     * Seperti record(), tapi untuk aksi yang tidak terkait postingan
+    /**
+    * Seperti record(), tapi untuk aksi yang tidak terkait postingan
      * (akun, kategori, komentar). Subjeknya ditampilkan di kolom judul.
      */
-    public static function recordSubject(string $action, string $subject, ?string $detail = null): void
+    public static function recordSubject(string $action, string $subject, ?string $detail = null, ?User $target = null): void
     {
         try {
             static::create([
-                'admin_id'      => auth()->id(),
-                'action'        => $action,
-                'post_id'       => null,
-                'subject_title' => Str::limit($subject, 250, ''),
-                'detail'        => $detail !== null ? Str::limit($detail, 500, '') : null,
+                'admin_id'         => auth()->id(),
+                'action'           => $action,
+                'post_id'          => null,
+                'subject_title'    => Str::limit($subject, 250, ''),
+                'target_user_id'   => $target?->id,
+                'target_user_name' => $target?->name,
+                'detail'           => $detail !== null ? Str::limit($detail, 500, '') : null,
             ]);
         } catch (Throwable $e) {
             report($e);
@@ -98,6 +108,8 @@ class ActivityLog extends Model
             'admin'      => $this->admin?->name ?? 'Admin (akun dihapus)',
             'label'      => $this->label(),
             'title'      => $this->subject_title,
+            'user'       => $this->target_user_name,   
+            'user_id'    => $this->target_user_id,     
             'detail'     => $this->detail,
             'created_at' => $this->created_at->toIso8601String(),
         ];

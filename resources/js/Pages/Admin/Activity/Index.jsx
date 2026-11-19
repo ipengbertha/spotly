@@ -53,13 +53,14 @@ export default function Index({ logs, filters }) {
                             <th className="whitespace-nowrap px-5 py-4 font-medium">Waktu</th>
                             <th className="px-5 py-4 font-medium">Admin</th>
                             <th className="px-5 py-4 font-medium">Aktivitas</th>
+                            <th className="px-5 py-4 font-medium">Pengguna</th>
                             <th className="px-5 py-4 font-medium">Catatan</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-ink/5">
                         {logs.data.length === 0 && (
                             <tr>
-                                <td colSpan={4} className="p-8 text-center text-ink/60">
+                                <td colSpan={5} className="p-8 text-center text-ink/60">
                                     {filters?.q ? 'Tidak ada aktivitas yang cocok.' : 'Belum ada aktivitas yang tercatat.'}
                                 </td>
                             </tr>
@@ -69,10 +70,11 @@ export default function Index({ logs, filters }) {
                                 <td className="whitespace-nowrap px-5 py-3 text-ink/70">{fmtTime(l.created_at)}</td>
                                 <td className="whitespace-nowrap px-5 py-3 font-semibold text-ink">{l.admin}</td>
                                 <td className="px-5 py-3 text-ink">
-                                    {l.label}
-                                    {l.title && <> <span className="font-semibold">&quot;{l.title}&quot;</span></>}
-                                </td>
-                                <td className="px-5 py-3 text-ink/70">{l.detail ?? '-'}</td>
+                                {l.label}
+                                {l.title && <> <span className="font-semibold">&quot;{l.title}&quot;</span></>}
+                            </td>
+                            <td className="whitespace-nowrap px-5 py-3 text-ink">{l.user ?? '-'}</td>
+                            <td className="px-5 py-3 text-ink/70">{l.detail ?? '-'}</td>
                             </tr>
                         ))}
                     </tbody>

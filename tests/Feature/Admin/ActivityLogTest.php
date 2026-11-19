@@ -51,7 +51,7 @@ class ActivityLogTest extends TestCase
         ]);
     }
 
-        private function laporan(Post $post, string $alasan = 'hoax'): Report
+    private function laporan(Post $post, string $alasan = 'hoax'): Report
     {
         $pelapor = User::factory()->create(['role' => 'user', 'is_active' => true]);
 
@@ -215,7 +215,7 @@ class ActivityLogTest extends TestCase
         $this->actingAs($siswa)->get('/admin/activity')->assertForbidden();
     }
 
-        public function test_publikasi_ulang_tercatat(): void
+    public function test_publikasi_ulang_tercatat(): void
     {
         $admin = $this->admin();
         $post = $this->buatPost(Post::ARCHIVED, [
@@ -224,7 +224,6 @@ class ActivityLogTest extends TestCase
         ]);
         $tanggal = now()->addDays(14)->toDateString();
 
-        // Ganti URL/method ini kalau route:list menunjukkan yang lain
         $this->actingAs($admin)->post("/admin/archive/{$post->id}/republish", [
             'expired_at' => $tanggal,
         ])->assertSessionHasNoErrors();
@@ -284,7 +283,7 @@ class ActivityLogTest extends TestCase
         $this->assertSame('2 laporan. Sudah dicek, informasinya benar.', $log->detail);
     }
 
-        public function test_akun_dinonaktifkan_dan_diaktifkan_tercatat(): void
+    public function test_akun_dinonaktifkan_dan_diaktifkan_tercatat(): void
     {
         $admin = $this->admin();
         $siswa = User::factory()->create(['role' => 'user', 'is_active' => true, 'name' => 'Budi Siswa']);
@@ -384,5 +383,71 @@ class ActivityLogTest extends TestCase
         $this->assertSame('category.deleted', $log->action);
         $this->assertSame('Kosong', $log->subject_title);
         $this->assertNull($log->detail);
+    }
+
+    // ---- Detail user yang terkena aksi ----
+
+    public function test_log_postingan_mencatat_nama_penulis(): void
+    {
+        $post   = $this->buatPost(Post::SUBMITTED);
+        $author = $post->user;
+
+        $this->actingAs($this->admin())
+            ->post("/admin/reviews/{$post->id}/revision", ['revision_note' => 'Tambahkan nama lomba dan tanggalnya.'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('activity_logs', [
+            'action'           => 'post.revision',
+            'target_user_id'   => $author->id,
+            'target_user_name' => $author->name,
+        ]);
+    }
+
+    public function test_log_hapus_postingan_tetap_menyimpan_nama_penulis(): void
+    {
+        $post   = $this->tayang();
+        $author = $post->user;
+
+        $this->actingAs($this->admin())->delete("/admin/posts/{$post->id}");
+
+        $this->assertDatabaseMissing('posts', ['id' => $post->id]);
+        $this->assertDatabaseHas('activity_logs', [
+            'action'           => 'post.deleted',
+            'target_user_id'   => $author->id,
+            'target_user_name' => $author->name,
+        ]);
+    }
+
+    public function test_log_akun_mencatat_user_yang_dinonaktifkan(): void
+    {
+        $siswa = User::factory()->create(['role' => 'user', 'is_active' => true, 'name' => 'Siti Aminah']);
+
+        $this->actingAs($this->admin())
+            ->patch("/admin/users/{$siswa->id}/deactivate")
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('activity_logs', [
+            'action'           => 'user.deactivated',
+            'target_user_id'   => $siswa->id,
+            'target_user_name' => 'Siti Aminah',
+        ]);
+    }
+
+    public function test_halaman_aktivitas_mengirim_nama_user(): void
+    {
+        $admin = $this->admin();
+
+        ActivityLog::forceCreate([
+            'admin_id'         => $admin->id,
+            'action'           => 'post.revision',
+            'subject_title'    => 'Juara Lomba Robotik',
+            'target_user_id'   => 99,
+            'target_user_name' => 'Budi Santoso',
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/activity')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('logs.data.0.user', 'Budi Santoso'));
     }
 }
