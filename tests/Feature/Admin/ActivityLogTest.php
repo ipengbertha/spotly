@@ -7,6 +7,8 @@ use App\Models\Category;
 use App\Models\Post;
 use App\Models\User;
 use App\Models\Report;
+use App\Models\Comment;
+use App\Models\CommentReport;
 use Illuminate\Support\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -434,20 +436,158 @@ class ActivityLogTest extends TestCase
     }
 
     public function test_halaman_aktivitas_mengirim_nama_user(): void
+        {
+            $admin = $this->admin();
+
+            ActivityLog::forceCreate([
+                'admin_id'         => $admin->id,
+                'action'           => 'post.revision',
+                'subject_title'    => 'Juara Lomba Robotik',
+                'target_user_id'   => 99,
+                'target_user_name' => 'Budi Santoso',
+            ]);
+
+            $this->actingAs($admin)
+                ->get('/admin/activity')
+                ->assertInertia(fn (Assert $page) => $page
+                    ->where('logs.data.0.user', 'Budi Santoso'));
+        }
+
+        public function test_siswa_kirim_ulang_setelah_revisi_tercatat(): void
+    {
+        $post = $this->buatPost(Post::DRAFT, ['rejection_reason' => 'Tambahkan nama lomba.']);
+
+        $this->actingAs($post->user)
+            ->post("/user/posts/{$post->id}/submit")
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('activity_logs', [
+            'action'           => 'post.resubmitted',
+            'admin_id'         => $post->user_id,
+            'post_id'          => $post->id,
+            'target_user_id'   => $post->user_id,
+            'target_user_name' => $post->user->name,
+        ]);
+    }
+
+    public function test_kirim_ulang_tanpa_catatan_revisi_tidak_tercatat(): void
+    {
+        $post = $this->buatPost(Post::DRAFT);
+
+        $this->actingAs($post->user)
+            ->post("/user/posts/{$post->id}/submit")
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(0, ActivityLog::count());
+    }
+
+    public function test_pencarian_aktivitas_berdasarkan_nama_pengguna(): void
     {
         $admin = $this->admin();
 
-        ActivityLog::forceCreate([
-            'admin_id'         => $admin->id,
-            'action'           => 'post.revision',
-            'subject_title'    => 'Juara Lomba Robotik',
-            'target_user_id'   => 99,
-            'target_user_name' => 'Budi Santoso',
-        ]);
+        ActivityLog::forceCreate(['admin_id' => $admin->id, 'action' => 'post.revision', 'subject_title' => 'Judul A', 'target_user_name' => 'Budi Santoso']);
+        ActivityLog::forceCreate(['admin_id' => $admin->id, 'action' => 'post.revision', 'subject_title' => 'Judul B', 'target_user_name' => 'Siti Aminah']);
 
+        $this->actingAs($admin)
+            ->get('/admin/activity?q=Siti')
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('logs.data', 1)
+                ->where('logs.data.0.title', 'Judul B'));
+    }
+
+    public function test_alur_revisi_lengkap_tercatat_dan_tampil_di_halaman_aktivitas(): void
+    {
+        $admin = $this->admin();
+        $post  = $this->buatPost(Post::SUBMITTED);
+        $siswa = $post->user;
+
+        // 1. Admin meminta revisi
+        $this->actingAs($admin)
+            ->post("/admin/reviews/{$post->id}/revision", ['revision_note' => 'Tambahkan nama lomba dan tanggalnya.'])
+            ->assertSessionHasNoErrors();
+
+        // 2. Siswa mengedit lalu mengirim ulang lewat form edit
+        $this->actingAs($siswa)
+            ->put("/user/posts/{$post->id}", [
+                'category_id' => $post->category_id,
+                'title'       => $post->title,
+                'content'     => '<p>isi sudah direvisi</p>',
+                'action'      => 'submit',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(
+            ['post.revision', 'post.resubmitted'],
+            ActivityLog::orderBy('id')->pluck('action')->all()
+        );
+
+        // 3. Halaman aktivitas menampilkan entri terbaru lengkap dengan pengguna dan catatan
         $this->actingAs($admin)
             ->get('/admin/activity')
             ->assertInertia(fn (Assert $page) => $page
-                ->where('logs.data.0.user', 'Budi Santoso'));
+                ->where('logs.data.0.label', 'mengirim ulang setelah revisi')
+                ->where('logs.data.0.title', $post->title)
+                ->where('logs.data.0.user', $siswa->name)
+                ->where('logs.data.0.detail', 'Catatan admin: Tambahkan nama lomba dan tanggalnya.')
+                ->where('logs.data.1.label', 'meminta revisi')
+                ->where('logs.data.1.user', $siswa->name));
+
+        // 4. Pencarian dengan nama siswa menemukan kedua entri
+        $this->actingAs($admin)
+            ->get('/admin/activity?q=' . urlencode($siswa->name))
+            ->assertInertia(fn (Assert $page) => $page->has('logs.data', 2));
     }
+    
+    public function test_tolak_laporan_komentar_mencatat_penulis_komentar(): void
+    {
+        $post  = $this->tayang();
+        $siswa = User::factory()->create(['role' => 'user', 'is_active' => true, 'name' => 'Rina Komentar']);
+        $pelapor = User::factory()->create(['role' => 'user', 'is_active' => true]);
+
+        $komentar = Comment::forceCreate([
+            'post_id' => $post->id,
+            'user_id' => $siswa->id,
+            'content' => 'Komentar yang dilaporkan.',
+        ]);
+
+        CommentReport::forceCreate([
+            'comment_id' => $komentar->id,
+            'user_id'    => $pelapor->id,
+            'reason'     => 'spam',
+        ]);
+
+        $this->actingAs($this->admin())
+            ->post("/admin/comments/{$komentar->id}/dismiss-reports")
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('comments', ['id' => $komentar->id]); // komentar tetap ada
+        $this->assertDatabaseHas('activity_logs', [
+            'action'           => 'comment.reports_dismissed',
+            'target_user_id'   => $siswa->id,
+            'target_user_name' => 'Rina Komentar',
+        ]);
+    }
+
+    public function test_hapus_komentar_mencatat_penulis_komentar(): void
+{
+    $post  = $this->tayang();
+    $siswa = User::factory()->create(['role' => 'user', 'is_active' => true, 'name' => 'Rina Komentar']);
+
+    $komentar = Comment::forceCreate([
+        'post_id' => $post->id,
+        'user_id' => $siswa->id,
+        'content' => 'Komentar yang akan dihapus admin.',
+    ]);
+
+    $this->actingAs($this->admin())
+        ->delete("/admin/comments/{$komentar->id}")
+        ->assertSessionHasNoErrors();
+
+    $this->assertDatabaseMissing('comments', ['id' => $komentar->id]);
+    $this->assertDatabaseHas('activity_logs', [
+        'action'           => 'comment.deleted',
+        'target_user_id'   => $siswa->id,
+        'target_user_name' => 'Rina Komentar',
+    ]);
+}
 }

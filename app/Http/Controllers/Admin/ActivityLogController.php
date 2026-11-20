@@ -18,6 +18,7 @@ class ActivityLogController extends Controller
             ->when($q, fn ($query) => $query->where(function ($w) use ($q) {
                 $w->where('subject_title', 'like', "%{$q}%")
                     ->orWhere('detail', 'like', "%{$q}%")
+                    ->orWhere('target_user_name', 'like', "%{$q}%") 
                     ->orWhereHas('admin', fn ($a) => $a->where('name', 'like', "%{$q}%"));
             }))
             ->latest()

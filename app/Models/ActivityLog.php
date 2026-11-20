@@ -14,6 +14,7 @@ class ActivityLog extends Model
         'post.scheduled'   => 'menyetujui dan menjadwalkan',
         'post.rejected'    => 'menolak',
         'post.revision'    => 'meminta revisi',
+        'post.resubmitted' => 'mengirim ulang setelah revisi',
         'post.unscheduled' => 'membatalkan jadwal',
         'post.archived'    => 'mengarsipkan',
         'post.deleted'     => 'menghapus',

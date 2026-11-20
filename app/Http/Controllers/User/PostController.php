@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\PostRequest;
 use App\Models\Category;
 use App\Models\Post;
+use App\Models\ActivityLog;
 use App\Models\User;
 use App\Notifications\PostSubmitted;
 use Illuminate\Support\Facades\Auth;
@@ -119,8 +120,7 @@ class PostController extends Controller
         $post->extraCategories()->sync($this->extraIds($data));
 
         if ($request->input('action') === 'submit') {
-            $post->markSubmitted();
-            $this->notifyAdmins($post);
+            $this->submitAndLog($post);
         }
 
         return redirect()->route('user.posts.index');
@@ -171,8 +171,7 @@ class PostController extends Controller
     public function submit(Post $post)
     {
         Gate::authorize('submit', $post);
-        $post->markSubmitted();
-        $this->notifyAdmins($post);
+        $this->submitAndLog($post);
 
         return redirect()->route('user.posts.index');
     }
@@ -187,6 +186,21 @@ class PostController extends Controller
         $post->delete();
 
         return redirect()->route('user.posts.index');
+    }
+
+    // Kirim ke review. Kalau postingan ini sebelumnya punya catatan dari admin
+    // (revisi atau penolakan), pengiriman ulang dicatat di log aktivitas.
+    private function submitAndLog(Post $post): void
+    {
+        // Ambil dulu sebelum markSubmitted(), karena catatan bisa dikosongkan di sana
+        $note = $post->rejection_reason;
+
+        $post->markSubmitted();
+        $this->notifyAdmins($post);
+
+        if (filled($note)) {
+            ActivityLog::record('post.resubmitted', $post, 'Catatan admin: ' . $note);
+        }
     }
 
     // Beri tahu semua admin aktif bahwa ada postingan menunggu review
