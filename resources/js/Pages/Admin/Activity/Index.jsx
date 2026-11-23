@@ -21,7 +21,7 @@ export default function Index({ logs, filters }) {
 
     return (
         <AdminLayout title="Aktivitas">
-            <Head title="Aktivitas Admin" />
+            <Head title="Aktivitas" />
 
             <div className="mb-5 flex flex-wrap items-stretch gap-3">
                 <div className="flex min-w-0 flex-1 items-start gap-3 rounded-2xl bg-grape/10 px-4 py-3 text-sm text-ink ring-1 ring-grape/20">
@@ -29,14 +29,14 @@ export default function Index({ logs, filters }) {
                         i
                     </span>
                     <p>
-                        Riwayat tindakan admin: siapa melakukan apa dan kapan.
+                        Riwayat aktivitas: siapa melakukan apa, pada siapa, dan kapan.
                         Catatan tetap tersimpan walau postingan, akun, atau kategorinya sudah dihapus.
                     </p>
                 </div>
 
                 <form onSubmit={search} className="flex w-full items-center gap-2 sm:w-auto">
                     <input value={q} onChange={(e) => setQ(e.target.value)}
-                        placeholder="Cari nama, admin, atau catatan..."
+                        placeholder="Cari nama, pelaku, atau catatan..."
                         aria-label="Cari aktivitas"
                         className="w-full rounded-full border border-ink/10 bg-white px-4 py-2.5 text-sm outline-none focus:border-grape focus:ring-2 focus:ring-grape/20 sm:w-72" />
                     <button type="submit"
@@ -51,7 +51,7 @@ export default function Index({ logs, filters }) {
                     <thead className="text-ink/50">
                         <tr>
                             <th className="whitespace-nowrap px-5 py-4 font-medium">Waktu</th>
-                            <th className="px-5 py-4 font-medium">Admin</th>
+                            <th className="px-5 py-4 font-medium">Pelaku</th>
                             <th className="px-5 py-4 font-medium">Aktivitas</th>
                             <th className="px-5 py-4 font-medium">Pengguna</th>
                             <th className="px-5 py-4 font-medium">Catatan</th>
