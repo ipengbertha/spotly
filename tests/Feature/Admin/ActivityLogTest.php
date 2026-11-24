@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Models\Report;
 use App\Models\Comment;
 use App\Models\CommentReport;
+use App\Models\PostView;
+use App\Models\ReadingHistory;
 use Illuminate\Support\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -569,25 +571,83 @@ class ActivityLogTest extends TestCase
     }
 
     public function test_hapus_komentar_mencatat_penulis_komentar(): void
-{
-    $post  = $this->tayang();
-    $siswa = User::factory()->create(['role' => 'user', 'is_active' => true, 'name' => 'Rina Komentar']);
+    {
+        $post  = $this->tayang();
+        $siswa = User::factory()->create(['role' => 'user', 'is_active' => true, 'name' => 'Rina Komentar']);
 
-    $komentar = Comment::forceCreate([
-        'post_id' => $post->id,
-        'user_id' => $siswa->id,
-        'content' => 'Komentar yang akan dihapus admin.',
-    ]);
+        $komentar = Comment::forceCreate([
+            'post_id' => $post->id,
+            'user_id' => $siswa->id,
+            'content' => 'Komentar yang akan dihapus admin.',
+        ]);
 
-    $this->actingAs($this->admin())
-        ->delete("/admin/comments/{$komentar->id}")
-        ->assertSessionHasNoErrors();
+        $this->actingAs($this->admin())
+            ->delete("/admin/comments/{$komentar->id}")
+            ->assertSessionHasNoErrors();
 
-    $this->assertDatabaseMissing('comments', ['id' => $komentar->id]);
-    $this->assertDatabaseHas('activity_logs', [
-        'action'           => 'comment.deleted',
-        'target_user_id'   => $siswa->id,
-        'target_user_name' => 'Rina Komentar',
-    ]);
-}
+        $this->assertDatabaseMissing('comments', ['id' => $komentar->id]);
+        $this->assertDatabaseHas('activity_logs', [
+            'action'           => 'comment.deleted',
+            'target_user_id'   => $siswa->id,
+            'target_user_name' => 'Rina Komentar',
+        ]);
+    }
+
+    public function test_siswa_membaca_postingan_dihitung_sekali(): void
+    {
+        $post  = $this->tayang();
+        $siswa = User::factory()->create(['role' => 'user', 'is_active' => true]);
+
+        $this->actingAs($siswa)->get("/posts/{$post->slug}")->assertOk();
+        $this->actingAs($siswa)->get("/posts/{$post->slug}")->assertOk();
+
+        $this->assertSame(1, PostView::where('post_id', $post->id)->count());
+    }
+
+    public function test_penulis_admin_dan_tamu_tidak_dihitung_sebagai_pembaca(): void
+    {
+        $post = $this->tayang();
+
+        $this->actingAs($post->user)->get("/posts/{$post->slug}")->assertOk();
+        $this->actingAs($this->admin())->get("/posts/{$post->slug}")->assertOk();
+
+        auth()->logout();
+        $this->get("/posts/{$post->slug}")->assertOk();
+
+        $this->assertSame(0, PostView::count());
+    }
+
+    public function test_hapus_riwayat_tidak_mengurangi_pembaca(): void
+    {
+        $post  = $this->tayang();
+        $siswa = User::factory()->create(['role' => 'user', 'is_active' => true]);
+
+        $this->actingAs($siswa)->get("/posts/{$post->slug}")->assertOk();
+        ReadingHistory::where('user_id', $siswa->id)->delete();
+
+        $this->assertSame(0, ReadingHistory::count());
+        $this->assertSame(1, PostView::where('post_id', $post->id)->count());
+    }
+
+    public function test_dashboard_menampilkan_jumlah_pembaca_per_periode(): void
+    {
+        $this->withoutExceptionHandling();
+
+        $post = $this->tayang();
+        $baru = User::factory()->create(['role' => 'user', 'is_active' => true]);
+        $lama = User::factory()->create(['role' => 'user', 'is_active' => true]);
+
+        PostView::insert([
+            ['post_id' => $post->id, 'user_id' => $baru->id, 'created_at' => now()],
+            ['post_id' => $post->id, 'user_id' => $lama->id, 'created_at' => now()->subDays(10)],
+        ]);
+
+        $this->actingAs($this->admin())
+            ->get('/admin/dashboard')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('readers.last_7_days', 1)
+                ->where('readers.last_30_days', 2)
+                ->where('topRead.0.id', $post->id)
+                ->where('topRead.0.readers', 2));
+    }
 }

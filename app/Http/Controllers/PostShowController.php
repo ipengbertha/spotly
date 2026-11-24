@@ -9,6 +9,7 @@ use App\Models\Post;
 use App\Models\PostReaction;
 use App\Models\ReadingHistory;
 use App\Models\Report;
+use App\Models\PostView;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -39,6 +40,12 @@ class PostShowController extends Controller
                 ['user_id' => $viewer->id, 'post_id' => $post->id],
                 ['last_read_at' => now()],
             );
+
+            // Pembaca unik untuk analitik. Terpisah dari riwayat supaya tidak hilang
+            // saat siswa menghapus riwayat bacaannya. Constraint unik membuat buka ulang diabaikan.
+            PostView::insertOrIgnore([
+                'post_id' => $post->id, 'user_id' => $viewer->id, 'created_at' => now(),
+            ]);
         }
 
         // Komentar hanya dibuka untuk postingan yang sedang tayang.

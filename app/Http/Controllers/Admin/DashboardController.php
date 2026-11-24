@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\ContributorAward;
 use App\Models\Post;
 use App\Models\User;
+use App\Models\PostView;
 use App\Services\ContributorRanking;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -41,6 +42,8 @@ class DashboardController extends Controller
                 ->get()
                 ->map(fn (ActivityLog $l) => $l->toRow())
                 ->values(),
+            'readers'  => $this->readers(),
+            'topRead'  => $this->topRead(),
         ]);
     }
 
@@ -133,5 +136,41 @@ class DashboardController extends Controller
                 ])
                 ->all(),
         ];
+    }
+
+    // Jumlah siswa berbeda yang membaca (pertama kali) dalam periode, plus total
+private function readers(): array
+{
+    $since = fn (int $days) => PostView::where('created_at', '>=', now()->subDays($days)->startOfDay())
+        ->distinct()->count('user_id');
+
+    return [
+        'last_7_days'  => $since(7),
+        'last_30_days' => $since(30),
+        'last_90_days' => $since(90),
+        'total_views'  => PostView::count(),
+    ];
+}
+
+    // Postingan tayang dengan pembaca unik terbanyak
+    private function topRead(): array
+    {
+        return Post::active()
+            ->withCount('views')
+            ->with('user:id,name')
+            ->orderByDesc('views_count')
+            ->orderByDesc('posts.id')
+            ->limit(5)
+            ->get()
+            ->filter(fn (Post $p) => $p->views_count > 0)
+            ->map(fn (Post $p) => [
+                'id'      => $p->id,
+                'slug'    => $p->slug,
+                'title'   => $p->title,
+                'author'  => $p->user?->name,
+                'readers' => (int) $p->views_count,
+            ])
+            ->values()
+            ->all();
     }
 }

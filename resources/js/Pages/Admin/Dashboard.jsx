@@ -71,7 +71,7 @@ function Donut({ percent }) {
 
 export default function Dashboard({
     stats, queue, weekly = [], topPosts = [], categories = [], activity = [],
-    contributors = { items: [] },
+    contributors = { items: [] }, readers = {}, topRead = [],
 }) {
     const user = usePage().props.auth?.user;
     const initial = (user?.name ?? '?').trim().charAt(0).toUpperCase();
@@ -290,6 +290,46 @@ export default function Dashboard({
                         </ul>
                     )}
                 </Card>
+
+                <Card>
+                <CardHead title="Pembaca" />
+                <div className="mb-4 grid grid-cols-3 gap-2 text-center">
+                    {[
+                        ['7 hari', readers.last_7_days],
+                        ['30 hari', readers.last_30_days],
+                        ['90 hari', readers.last_90_days],
+                    ].map(([label, value]) => (
+                        <div key={label} className="rounded-2xl bg-cream/70 px-2 py-3">
+                            <p className="text-2xl font-light text-ink">{value ?? 0}</p>
+                            <p className="text-xs text-ink/60">{label}</p>
+                        </div>
+                    ))}
+                </div>
+                <p className="mb-3 text-xs text-ink/60">
+                    Siswa berbeda yang mulai membaca dalam periode itu. Satu siswa dihitung sekali per postingan.
+                </p>
+                {topRead.length === 0 ? (
+                    <p className="text-sm text-ink/60">Belum ada pembaca di postingan yang tayang.</p>
+                ) : (
+                    <ul className="space-y-2">
+                        {topRead.map((p, i) => (
+                            <li key={p.id}>
+                                <Link href={`/posts/${p.slug}`}
+                                    className="flex items-center gap-3 rounded-2xl bg-cream/70 px-4 py-2.5 text-sm hover:bg-peach/30">
+                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-grape text-xs font-bold text-white">
+                                        {i + 1}
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate font-semibold text-ink">{p.title}</p>
+                                        <p className="text-xs text-ink/60">{p.author}</p>
+                                    </div>
+                                    <span className="shrink-0 text-xs font-semibold text-grape">{p.readers} pembaca</span>
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </Card>
 
                 {/* Kontributor bulan lalu: 5 teratas + status pengumuman */}
                 <Card>

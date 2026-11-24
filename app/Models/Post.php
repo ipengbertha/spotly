@@ -96,6 +96,7 @@ class Post extends Model
     public function reactions() { return $this->hasMany(PostReaction::class); }
     public function reports()  { return $this->hasMany(Report::class); }
     public function readings() { return $this->hasMany(ReadingHistory::class); }
+    public function views()    { return $this->hasMany(PostView::class); }
 
     /**
      * Tambahkan jumlah suka (likes_count), jumlah komentar (comments_count) untuk kartu,
