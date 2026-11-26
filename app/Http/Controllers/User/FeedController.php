@@ -91,6 +91,23 @@ class FeedController extends Controller
             'categories' => Category::orderBy('name')->get(['id', 'name']),
             'poll'       => $poll?->forViewer($request->user()),
             'contributors' => ContributorAward::latestForFeed(),
+            'bestPost'   => $this->bestPost($request->user()->id),
         ]);
+    }
+
+    private function bestPost(int $userId): ?array
+    {
+        $post = Post::active()
+            ->with(['category:id,name', 'user:id,name,avatar', 'extraCategories'])
+            ->withLikes($userId)
+            ->withCount('views')
+            ->where('posts.published_at', '>=', now()->startOfMonth())
+            ->orderByDesc('likes_count')
+            ->orderByDesc('views_count')
+            ->orderByDesc('posts.published_at')
+            ->orderByDesc('posts.id')
+            ->first();
+
+        return ($post && $post->likes_count > 0) ? $post->toCard() : null;
     }
 }

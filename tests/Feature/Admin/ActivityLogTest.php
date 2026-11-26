@@ -650,4 +650,35 @@ class ActivityLogTest extends TestCase
                 ->where('topRead.0.id', $post->id)
                 ->where('topRead.0.readers', 2));
     }
+    
+    public function test_karya_terbaik_bulan_ini_memilih_suka_terbanyak(): void
+    {
+        $a = $this->tayang();
+        $b = $this->tayang();
+        $a->forceFill(['published_at' => now()])->save();
+        $b->forceFill(['published_at' => now()])->save();
+
+        $u1 = User::factory()->create(['role' => 'user', 'is_active' => true]);
+        $u2 = User::factory()->create(['role' => 'user', 'is_active' => true]);
+        $a->likes()->forceCreate(['user_id' => $u1->id]);
+        $b->likes()->forceCreate(['user_id' => $u1->id]);
+        $b->likes()->forceCreate(['user_id' => $u2->id]);
+
+        $this->actingAs($u1)->get('/user/beranda')
+            ->assertInertia(fn (Assert $page) => $page->where('bestPost.id', $b->id));
+    }
+
+    public function test_karya_terbaik_kosong_jika_tanpa_suka_atau_bukan_bulan_ini(): void
+    {
+        $baru = $this->tayang();
+        $baru->forceFill(['published_at' => now()])->save();
+
+        $lama = $this->tayang();
+        $lama->forceFill(['published_at' => now()->subMonths(2)])->save();
+        $u = User::factory()->create(['role' => 'user', 'is_active' => true]);
+        $lama->likes()->forceCreate(['user_id' => $u->id]);
+
+        $this->actingAs($u)->get('/user/beranda')
+            ->assertInertia(fn (Assert $page) => $page->where('bestPost', null));
+}
 }

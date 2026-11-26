@@ -8,14 +8,35 @@ import CategoryBar from '../../Components/CategoryBar';
 
 // Pilihan filter tanggal (nilai harus sama dengan FeedController::PERIOD_OPTIONS)
 const PERIODS = [
-    { value: '7',           label: '7 hari terakhir',  phrase: 'dalam 7 hari terakhir' },
-    { value: '30',          label: '30 hari terakhir', phrase: 'dalam 30 hari terakhir' },
+    { value: '7', label: '7 hari terakhir', phrase: 'dalam 7 hari terakhir' },
+    { value: '30', label: '30 hari terakhir', phrase: 'dalam 30 hari terakhir' },
     { value: '90', label: '3 bulan terakhir', phrase: 'dalam 3 bulan terakhir' },
-    { value: 'month',       label: 'Bulan ini',        phrase: 'bulan ini' },
+    { value: 'month', label: 'Bulan ini', phrase: 'bulan ini' },
     { value: 'school_year', label: 'Tahun ajaran ini', phrase: 'pada tahun ajaran ini' },
 ];
 
-export default function Beranda({ posts, filters, isAdmin, categories = [], poll = null, contributors = null }) {
+function BestPostCard({ p }) {
+    return (
+        <Link href={`/posts/${p.slug}`}
+            className="mb-6 flex flex-col overflow-hidden rounded-3xl border-2 border-peach bg-white shadow-md transition hover:shadow-lg sm:flex-row">
+            <div className="h-40 shrink-0 bg-linear-to-br from-peach to-grape/60 sm:h-auto sm:w-56">
+                {p.image_url && <img src={p.image_url} alt="" className="h-full w-full object-cover" />}
+            </div>
+            <div className="min-w-0 p-5">
+                <span className="inline-block rounded-full bg-grape px-3 py-0.5 text-xs font-bold text-white">
+                    Karya Terbaik Bulan Ini
+                </span>
+                <h2 className="mt-2 line-clamp-2 text-xl font-bold leading-snug text-ink">{p.title}</h2>
+                <p className="mt-1 line-clamp-2 text-sm text-ink/70">{p.excerpt}</p>
+                <p className="mt-2 text-xs text-ink/60">
+                    Oleh {p.author} &middot; {p.likes_count} suka &middot; {p.reading_minutes} menit baca
+                </p>
+            </div>
+        </Link>
+    );
+}
+
+export default function Beranda({ posts, filters, isAdmin, categories = [], poll = null, contributors = null, bestPost = null }) {
     const { auth } = usePage().props;
     const Layout = isAdmin ? AdminLayout : UserLayout;
     const catName = categories.find((c) => String(c.id) === String(filters.category))?.name;
@@ -84,7 +105,10 @@ export default function Beranda({ posts, filters, isAdmin, categories = [], poll
 
             {!isFiltering && poll && <PollCard poll={poll} />}
             {!isFiltering && contributors && <ContributorCard data={contributors} />}
+            {!isFiltering && contributors && <ContributorCard data={contributors} />}
+            {!isFiltering && bestPost && <BestPostCard p={bestPost} />}
 
+            
                         {/* Filter kategori */}
                 <CategoryBar categories={categories} filters={filters} buildHref={buildHref} />
 
