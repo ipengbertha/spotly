@@ -105,10 +105,9 @@ export default function Beranda({ posts, filters, isAdmin, categories = [], poll
 
             {!isFiltering && poll && <PollCard poll={poll} />}
             {!isFiltering && contributors && <ContributorCard data={contributors} />}
-            {!isFiltering && contributors && <ContributorCard data={contributors} />}
             {!isFiltering && bestPost && <BestPostCard p={bestPost} />}
 
-            
+
                         {/* Filter kategori */}
                 <CategoryBar categories={categories} filters={filters} buildHref={buildHref} />
 
